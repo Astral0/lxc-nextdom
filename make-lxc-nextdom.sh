@@ -63,9 +63,7 @@ chmod 755 ${new}/usr/bin/create-nextdom-container.sh
 chmod 755 ${new}/usr/bin/delete-nextdom-container.sh
 chmod 755 ${new}/etc/lxc-nextdom/bin/*.sh
 
-echo " "
-${root}/make.sh ${new}
-echo " "
+dpkg-deb --build ${new}
 
 echo " >>> COMPLETED <<<"
 
