@@ -13,7 +13,16 @@ DEB_VERS=stretch
 usage() { echo "Usage: $0
   [-h <help>]
   [-n <container name (default: lxc-nextdom)>]
-  [-p <product type ('stable' or 'empty' or branche/pr name, default:stable)]
+  [-p <product type :
+            'empty'   : Create an empty container
+            'nextdom' : Nextdom stable [default]
+            'jeedom'  : Jeedom stable (yes!)
+            'grafana' : Grafana
+            'influxdb' : InfluxDB database
+            'mosquitto' : Mosquitto MQTT server
+            'nextdom2influxdb' : Gateway between Nextdom and InfluxDB
+             or any text : Nextdom development version with a branch/pr name
+  ]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
   [-r yes <replace container>]
   [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
@@ -28,7 +37,7 @@ while getopts "n:p:i:r:b:" option; do
             LXC_NAME=${OPTARG}
             ;;
         p)
-            NEXTDOM_VERSION=${OPTARG}
+            PRODUCT_NAME=${OPTARG}
             ;;
         i)
             LXC_CIDR=${OPTARG}
@@ -48,10 +57,10 @@ done
 shift $((OPTIND-1))
 
 LXC_NAME=${LXC_NAME:-"lxc-nextdom"}
-NEXTDOM_VERSION=${NEXTDOM_VERSION:-"stable"}
+PRODUCT_NAME=${PRODUCT_NAME:-"nextdom"}
 
 #echo $LXC_NAME
-#echo $NEXTDOM_VERSION
+#echo $PRODUCT_NAME
 #echo $LXC_CIDR
 echo $LXC_REPLACE
 
@@ -260,22 +269,21 @@ step_start_container() {
     #
     # Install Nextdom inside container
     arg=
-    if [ ! ${NEXTDOM_VERSION} = "empty" ] ; then
-        if [ ${NEXTDOM_VERSION} = "stable" ] ; then
-            cp -ax /etc/lxc-nextdom/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-        elif [ ${NEXTDOM_VERSION} = "grafana" ] ; then
-            cp -ax /etc/lxc-nextdom/bin/install_grafana.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-            arg="toto titi"
-        elif [ ${NEXTDOM_VERSION} = "influxdb" ] ; then
-            cp -ax /etc/lxc-nextdom/bin/install_influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-            arg="tutu tata"
-        elif [ ${NEXTDOM_VERSION} = "nextdom2influxdb" ] ; then
-            cp -ax /etc/lxc-nextdom/bin/install_nextdom2influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-            arg="ip1 ip2"
+    if [ ! ${PRODUCT_NAME} = "empty" ] ; then
+        if [ -f /etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh ] ; then
+            cp -ax /etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+#        if [ ${PRODUCT_NAME} = "nextdom" ] ; then
+#            cp -ax /etc/lxc-nextdom/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+#        elif [ ${PRODUCT_NAME} = "grafana" ] ; then
+#            cp -ax /etc/lxc-nextdom/bin/install_grafana.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+#        elif [ ${PRODUCT_NAME} = "influxdb" ] ; then
+#            cp -ax /etc/lxc-nextdom/bin/install_influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+#        elif [ ${PRODUCT_NAME} = "nextdom2influxdb" ] ; then
+#            cp -ax /etc/lxc-nextdom/bin/install_nextdom2influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
         else
             cp -ax /etc/lxc-nextdom/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-            #sed -i "s#NEXTDOM_VERSION#${NEXTDOM_VERSION}#g" ${ROOT_CONTAINER}/rootfs/root/install_nextdom.sh
-            arg="${NEXTDOM_VERSION}"
+            #sed -i "s#PRODUCT_NAME#${PRODUCT_NAME}#g" ${ROOT_CONTAINER}/rootfs/root/install_nextdom.sh
+            arg="${PRODUCT_NAME}"
         fi
         chmod 755 ${ROOT_CONTAINER}/rootfs/root/install.sh
         sleep 2

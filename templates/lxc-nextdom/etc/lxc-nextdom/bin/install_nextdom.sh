@@ -5,7 +5,7 @@ arg=$1
 # Prerequis
 apt update
 apt -y upgrade
-apt install -y software-properties-common gnupg wget
+apt install -y software-properties-common gnupg wget hostname
 add-apt-repository non-free
 wget -qO -  http://debian.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
 echo "deb  http://debian.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
@@ -49,3 +49,7 @@ if [ ! -z ${backupfile} ] ; then
         sudo -u www-data php /var/www/html/install/restore.php
     fi
 fi
+
+# Show IP
+ip=$(hostname -I)
+echo " >>>>  Please open http://${ip} <<<<"
