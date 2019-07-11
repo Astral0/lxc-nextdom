@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#set -x
+#echo ">>>>>>> $0 $* <<<<<<<"
+
+VAR_DIR=/var/lib/lxc-nextdom
+ETC_DIR=/etc/lxc-nextdom
+LXC_DIR=/var/lib/lxc
+
+
+case "$1" in
+
+  configure)
+    # Create bridged network interface
+    /etc/lxc-nextdom/bin/lxc_network_setup.sh
+
+    # Create lxc-nextdom container
+    #/usr/bin/create-nextdom-container.sh
+
+    # Show
+    echo " "
+    echo ">>>>> To create you first container, run : /usr/bin/create-nextdom-container.sh <<<<<"
+    echo " "
+  ;;
+
+  abort-upgrade)
+  ;;
+
+  abort-remove)
+  ;;
+
+esac
+

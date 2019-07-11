@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#set -x
+#echo ">>>>>>> $0 $* <<<<<<<"
+
+VAR_DIR=/var/lib/lxc-nextdom
+ETC_DIR=/etc/lxc-nextdom
+LXC_DIR=/var/lib/lxc
+
+
+case "$1" in
+
+  remove)
+    #if [ -f ${VAR_DIR}/list ] ; then
+    #  for container in $(cat ${VAR_DIR}/list) ; do
+    #    if [ -d ${LXC_DIR}/${container} ] ; then
+    #      /usr/bin/delete-nextdom-container.sh -n ${container}
+    #      #lxc-destroy -n ${container} >/dev/null 2>/dev/null
+    #    fi
+    #  done
+    #fi
+    /etc/lxc-nextdom/bin/lxc_network_stop.sh
+
+  ;;
+
+  upgrade)
+  ;;
+
+  failed-upgrade)
+  ;;
+
+esac
+

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#set -x
+#echo ">>>>>>> $0 $* <<<<<<<"
+
+VAR_DIR=/var/lib/lxc-nextdom
+ETC_DIR=/etc/lxc-nextdom
+LXC_DIR=/var/lib/lxc
+
+
+case "$1" in
+
+  install)
+  ;;
+
+  upgrade)
+  ;;
+
+  abort-upgrade)
+  ;;
+
+esac
+
