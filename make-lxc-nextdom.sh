@@ -59,8 +59,8 @@ chmod 755 ${PRERM}
 chmod 755 ${POSTRM}
 
 #find . -name "*.sh" -exec chmod 755 {} \
-chmod 755 ${new}/usr/bin/create-nextdom-container.sh
-chmod 755 ${new}/usr/bin/delete-nextdom-container.sh
+chmod 755 ${new}/usr/bin/create-nextdom-container
+chmod 755 ${new}/usr/bin/delete-nextdom-container
 chmod 755 ${new}/etc/lxc-nextdom/bin/*.sh
 
 dpkg-deb --build ${new}
