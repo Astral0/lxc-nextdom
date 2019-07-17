@@ -133,7 +133,7 @@ step_bootstrap_lxc() {
     # Test if container already exists
     if [[ -d "${ROOT_CONTAINER}/rootfs" ]]; then
         if [ ! -z ${LXC_REPLACE} ] ; then
-            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Erasing!\n"
+            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Erasing! Please add '-r yes' to replace\n"
             set +e
             lxc-stop -n ${LXC_NAME}
             set -e
@@ -208,6 +208,7 @@ step_prepare_config() {
     #
     # Suppress ipv6 compatibility
     sed -i 's/^lxc.network.ipv6/#lxc.network.ipv6/g' ${config}
+    echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs//etc/sysctl.conf
     #
     # Change MAC
     sed -i "s/^lxc.network.hwaddr.*/lxc.network.hwaddr = ${MAC}/g" ${config}

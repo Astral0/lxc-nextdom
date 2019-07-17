@@ -47,7 +47,7 @@ fi
 # Erase container
 set +e
 isrunning=$(lxc-info -n ${LXC_NAME} --state |awk -F" " '{print $2}')
-if [ ${isrunning} == 'RUNNING' ] ; then
+if [ "${isrunning}" == 'RUNNING' ] ; then
   lxc-stop -n ${LXC_NAME} 2>/dev/null
 fi
 lxc-destroy -n ${LXC_NAME} 2>/dev/null
