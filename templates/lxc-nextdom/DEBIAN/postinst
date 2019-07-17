@@ -15,11 +15,11 @@ case "$1" in
     /etc/lxc-nextdom/bin/lxc_network_setup.sh
 
     # Create lxc-nextdom container
-    #/usr/bin/create-nextdom-container.sh
+    #/usr/bin/create-nextdom-container
 
     # Show
     echo " "
-    echo ">>>>> To create you first container, run : /usr/bin/create-nextdom-container.sh <<<<<"
+    echo ">>>>> To create you first container, run : /usr/bin/create-nextdom-container <<<<<"
     echo " "
   ;;
 

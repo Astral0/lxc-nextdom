@@ -14,7 +14,7 @@ case "$1" in
     #if [ -f ${VAR_DIR}/list ] ; then
     #  for container in $(cat ${VAR_DIR}/list) ; do
     #    if [ -d ${LXC_DIR}/${container} ] ; then
-    #      /usr/bin/delete-nextdom-container.sh -n ${container}
+    #      /usr/bin/delete-nextdom-container -n ${container}
     #      #lxc-destroy -n ${container} >/dev/null 2>/dev/null
     #    fi
     #  done
