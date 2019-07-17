@@ -209,7 +209,7 @@ step_prepare_config() {
     #
     # Suppress ipv6 compatibility
     sed -i 's/^lxc.network.ipv6/#lxc.network.ipv6/g' ${config}
-    echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs//etc/sysctl.conf
+    echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs/etc/sysctl.conf
     #
     # Change MAC
     sed -i "s/^lxc.network.hwaddr.*/lxc.network.hwaddr = ${MAC}/g" ${config}
