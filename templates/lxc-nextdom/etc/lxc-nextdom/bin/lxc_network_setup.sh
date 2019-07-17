@@ -28,6 +28,16 @@ step_generate_mac() {
 }
 
 
+is_ip_address() {
+    IP=$1
+    if [[ ! "$IP" =~ (([01]{,1}[0-9]{1,2}|2[0-4][0-9]|25[0-5])\.([01]{,1}[0-9]{1,2}|2[0-4][0-9]|25[0-5])\.([01]{,1}[0-9]{1,2}|2[0-4][0-9]|25[0-5])\.([01]{,1}[0-9]{1,2}|2[0-4][0-9]|25$
+       echo "<A> Problem with detected DHCP IP server : ${IP}"
+       IP=""
+    fi
+
+}
+
+
 step_get_dhcp_server() {
     ## get DHCP server ##
     DHCP=""
@@ -37,6 +47,10 @@ step_get_dhcp_server() {
     fi
     if [[ ${DHCP} = "" ]] && [[ -f /usr/bin/nmap ]] ; then
         DHCP=$(nmap --script broadcast-dhcp-discover -e ${ETH} 2>/dev/null |grep "Server Identifier" | awk -F" " '{print $4}')
+    fi
+    #
+    if [[ ${DHCP} = "" ]] && [[ -f /sbin/dhclient ]] ; then
+        DHCP=$((dhclient -v > /dev/null) 2>&1 | grep DHCPACK | awk -F" " '{print $5}')
     fi
     set -e
     #

@@ -21,6 +21,7 @@ usage() { echo "Usage: $0
             'influxdb' : InfluxDB database
             'mosquitto' : Mosquitto MQTT server
             'nextdom2influxdb' : Gateway between Nextdom and InfluxDB
+            'openvpn-server' : OpenVPN server
              or any text : Nextdom development version with a branch/pr name
   ]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
