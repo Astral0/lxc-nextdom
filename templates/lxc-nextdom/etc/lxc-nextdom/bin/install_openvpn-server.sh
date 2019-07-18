@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# OpenVPN Deiban 9 version
+
 set -e
 
 arg1=$1
