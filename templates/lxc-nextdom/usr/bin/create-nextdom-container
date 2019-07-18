@@ -63,7 +63,7 @@ PRODUCT_NAME=${PRODUCT_NAME:-"nextdom"}
 #echo $LXC_NAME
 #echo $PRODUCT_NAME
 #echo $LXC_CIDR
-echo $LXC_REPLACE
+#echo $LXC_REPLACE
 
 ROOT_CONTAINER=${LXC_DIR}/${LXC_NAME}
 
@@ -109,6 +109,16 @@ if [ ! -z ${NEXTDOM_BACKUP} ] ; then
 fi
 
 
+# Test if backup is needed
+if [ -z ${NEXTDOM_BACKUP} ] ; then
+    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "/etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh" ] ; then
+        needbackup="1"
+    else
+        needbackup="0"
+    fi
+fi
+
+
 # -----------------------------------------------------------------------------
 
 step_verify_missing_packages() {
@@ -134,13 +144,13 @@ step_bootstrap_lxc() {
     # Test if container already exists
     if [[ -d "${ROOT_CONTAINER}/rootfs" ]]; then
         if [ ! -z ${LXC_REPLACE} ] ; then
-            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Erasing! Please add '-r yes' to replace\n"
+            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Erasing!\n"
             set +e
             lxc-stop -n ${LXC_NAME}
             set -e
             lxc-destroy -n ${LXC_NAME}
         else
-            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Stopping!\n"
+            print_log_in "\n<F> Container ${ROOT_CONTAINER} already exists! Stopping! Please add '-r yes' to replace\n"
             exit 1
         fi
     fi
@@ -165,10 +175,10 @@ step_get_gateway() {
     GATEWAY=${GA:-"192.168.x.x"}
 }
 
+
 step_save_list() {
     conf=${VAR_DIR}/list
-
-
+    #
     if [[ -f "${conf}" ]] ; then rm -f ${conf} ; fi
     touch ${conf}
     chmod 600 ${conf}
@@ -221,33 +231,45 @@ step_prepare_config() {
     # Autostart container
     echo "lxc.start.auto = 1" >>${config}
     #
-    # Copy last jeedom/nextdom backup from host if exists
-    backupfile=""
-    if [ ! -z ${NEXTDOM_BACKUP} ] ; then
-        if [ -f "${NEXTDOM_BACKUP}" ] ; then
-            backupfile=${NEXTDOM_BACKUP}
-        fi
-    fi
-    #
-    if [ -z ${NEXTDOM_BACKUP} ] ; then
-        if [ -d "/var/www/html/backup" ] ; then
-            backupfile=$(ls -atr /var/www/html/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
-        fi
-        if [ -d "/var/lib/nextdom/backup" ] ; then
-            if [ -z ${backupfile} ] ; then
-                backupfile=$(ls -atr /var/lib/nextdom/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
-            fi
-        fi
-    fi
-    #
-    if [ -f "${backupfile}" ] ; then
-        mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-    fi
+    # OpenVPN (for Unprivileged containers)
+    mkdir -p ${ROOT_CONTAINER}/rootfs/dev/net
+    mknod ${ROOT_CONTAINER}/rootfs/dev/net/tun c 10 200
+    #echo "lxc.mount.entry = /dev/net/tun ${ROOT_CONTAINER}/rootfs/dev/net/tun none bind create=file" >>${config}
     #
     # Add container hostname in /etc/hosts
     echo "127.0.1.1       ${LXC_NAME}"  >> ${ROOT_CONTAINER}/rootfs/etc/hosts
+    #
+    # Copy last jeedom/nextdom backup from host if exists (and if needeed)
+    if [ ${needbackup} == "1" ] ; then
+        backupfile=""
+        if [ ! -z ${NEXTDOM_BACKUP} ] ; then
+            if [ -f "${NEXTDOM_BACKUP}" ] ; then
+                backupfile=${NEXTDOM_BACKUP}
+            fi
+        fi
+        #
+        if [ -z ${NEXTDOM_BACKUP} ] ; then
+            if [ -d "/var/www/html/backup" ] ; then
+                backupfile=$(ls -atr /var/www/html/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
+            fi
+            if [ -d "/var/lib/nextdom/backup" ] ; then
+                if [ -z ${backupfile} ] ; then
+                    backupfile=$(ls -atr /var/lib/nextdom/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
+               fi
+           fi
+        fi
+        #
+        if [ -f "${backupfile}" ] ; then
+            mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+            chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+            cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+        fi
+    fi
+    # Copy special files inside container
+    if [ -d "${ETC_DIR}/bin/${PRODUCT_NAME}" ] ; then
+        mkdir -p ${ROOT_CONTAINER}/rootfs/tmp/install/
+        cp -ax ${ETC_DIR}/bin/${PRODUCT_NAME}/* ${ROOT_CONTAINER}/rootfs/tmp/install/
+    fi
     #
     # Add container in file list
     if [ ! -d "${VAR_DIR}" ]; then mkdir -p ${VAR_DIR} ; fi
@@ -272,18 +294,10 @@ step_start_container() {
     # Install Nextdom inside container
     arg=
     if [ ! ${PRODUCT_NAME} = "empty" ] ; then
-        if [ -f /etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh ] ; then
-            cp -ax /etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-#        if [ ${PRODUCT_NAME} = "nextdom" ] ; then
-#            cp -ax /etc/lxc-nextdom/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-#        elif [ ${PRODUCT_NAME} = "grafana" ] ; then
-#            cp -ax /etc/lxc-nextdom/bin/install_grafana.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-#        elif [ ${PRODUCT_NAME} = "influxdb" ] ; then
-#            cp -ax /etc/lxc-nextdom/bin/install_influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-#        elif [ ${PRODUCT_NAME} = "nextdom2influxdb" ] ; then
-#            cp -ax /etc/lxc-nextdom/bin/install_nextdom2influxdb.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+        if [ -f ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ] ; then
+            cp -ax ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
         else
-            cp -ax /etc/lxc-nextdom/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+            cp -ax ${ETC_DIR}/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
             #sed -i "s#PRODUCT_NAME#${PRODUCT_NAME}#g" ${ROOT_CONTAINER}/rootfs/root/install_nextdom.sh
             arg="${PRODUCT_NAME}"
         fi
@@ -292,23 +306,25 @@ step_start_container() {
         lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}
     fi
     #
-    # Just copy backup file if detected on host
-    backupfile=
-    if [ -z ${NEXTDOM_BACKUP} ] ; then
-        if [ -d "/var/www/html/backup" ] ; then
-            backupfile=$(ls -atr /var/www/html/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
-        fi
-        if [ -d "/var/lib/nextdom/backup" ] ; then
-            if [ -z ${backupfile} ] ; then
-                backupfile=$(ls -atr /var/lib/nextdom/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
+    # Just copy backup file if detected on host (and if produc is nextdom, jeedom or any nextdom dev)
+    if [ ${needbackup} == "1" ] ; then
+        backupfile=
+        if [ -z ${NEXTDOM_BACKUP} ] ; then
+            if [ -d "/var/www/html/backup" ] ; then
+                backupfile=$(ls -atr /var/www/html/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
+            fi
+            if [ -d "/var/lib/nextdom/backup" ] ; then
+                if [ -z ${backupfile} ] ; then
+                    backupfile=$(ls -atr /var/lib/nextdom/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
+                fi
             fi
         fi
-    fi
-    if [ -f "${backupfile}" ] ; then
-        mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        print_log_in "\n<I> Backup file copied. You can restore it from Nextdom web interface.\n"
+        if [ -f "${backupfile}" ] ; then
+            mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+            chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+            cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
+            print_log_in "\n<I> Backup file copied. You can restore it from Nextdom web interface.\n"
+        fi
     fi
     #
     # Show IP adress

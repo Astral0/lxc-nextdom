@@ -58,7 +58,7 @@ chmod 755 ${POSTINST}
 chmod 755 ${PRERM}
 chmod 755 ${POSTRM}
 
-find ${new}/ -name "*.sh" -exec chmod 755 {} \
+find ${new}/ -name "*.sh" -exec chmod 755 {} \;
 chmod 755 ${new}/usr/bin/create-nextdom-container
 chmod 755 ${new}/usr/bin/delete-nextdom-container
 chmod 755 ${new}/etc/lxc-nextdom/bin/*.sh

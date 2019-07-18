@@ -9,21 +9,29 @@ arg2=$2
 
 echo " >>>> Installation de OpenVPN Server <<<<"
 
+# Check TERM
+if [ -z ${TERM} ] ; then
+    export TERM=vt100
+else
+    set +e
+    isscreen=$(echo $TERM | grep "screen")
+    if [ ! -z ${isscreen} ] ; then
+        export TERM=vt100
+    fi
+    set -e
+fi
+#echo $TERM
+
+
 # Params
 openvpn_root="/root/vpn"
-openvpn_ca=${openvpn_root}/EasyRSA
-clients="/root/client-configs"
+openvpn_ca=${openvpn_root}/openvpn-ca
+clients=${openvpn_root}/client-configs
 
 # Prerequis
-#apt update
-#apt -y upgrade
-#apt install -y openvpn wget hostname whiptail
-#apt install -y openvpn easy-rsa wget hostname whiptail
-
-#wget https://raw.githubusercontent.com/Angristan/OpenVPN-install/master/openvpn-install.sh
-#chmod +x openvpn-install.sh
-#./openvpn-install.sh
-
+apt update
+apt -y upgrade
+apt install -y openvpn easy-rsa wget hostname whiptail gzip
 
 
 # Creation du repertoire
@@ -34,18 +42,12 @@ if [ -f ${openvpn_root} ] || [ -d ${openvpn_root} ] ; then
 fi
 mkdir -p ${openvpn_root}
 
-wget -qO- https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.6/EasyRSA-unix-v3.0.6.tgz | tar xfz - -C ${openvpn_root}/
-cd ${openvpn_root}/
-ln -s EasyRSA-v3.0.6 EasyRSA
 
+# Create easy-rsa template dir
+make-cadir ${openvpn_ca}
 cd ${openvpn_ca}
-cp vars.example vars
 
-
-## Create easy-rsa template dir
-#make-cadir ${openvpn_ca}
-
-# Configu vars file
+# Config vars file
 if [ -f "/root/vars" ] ; then
     # Test if own parameters are present
     source /root/vars
@@ -71,73 +73,89 @@ else
 
 fi
 
-#sed -i "s#^export KEY_COUNTRY=.*#export KEY_COUNTRY=\"$KEY_COUNTRY\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_PROVINCE=.*#export KEY_PROVINCE=\"$KEY_PROVINCE\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_CITY=.*#export KEY_CITY=\"$KEY_CITY\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_ORG=.*#export KEY_ORG=\"$KEY_ORG\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_EMAIL=.*#export KEY_EMAIL=\"$KEY_EMAIL\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_OU=.*#export KEY_OU=\"$KEY_OU\"#g" ${openvpn_ca}/vars
-#sed -i "s#^export KEY_NAME=.*#export KEY_NAME=\"server\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_COUNTRY=.*#export KEY_COUNTRY=\"$KEY_COUNTRY\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_PROVINCE=.*#export KEY_PROVINCE=\"$KEY_PROVINCE\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_CITY=.*#export KEY_CITY=\"$KEY_CITY\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_ORG=.*#export KEY_ORG=\"$KEY_ORG\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_EMAIL=.*#export KEY_EMAIL=\"$KEY_EMAIL\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_OU=.*#export KEY_OU=\"$KEY_OU\"#g" ${openvpn_ca}/vars
+sed -i "s#^export KEY_NAME=.*#export KEY_NAME=\"server\"#g" ${openvpn_ca}/vars
 
 
-sed -i "s/^#set_var EASYRSA_REQ_COUNTRY.*/set_var EASYRSA_REQ_COUNTRY    \"$KEY_COUNTRY\"/g" ${openvpn_ca}/vars
-sed -i "s/^#set_var EASYRSA_REQ_PROVINCE.*/set_var EASYRSA_REQ_PROVINCE   \"$KEY_PROVINCE\"/g" ${openvpn_ca}/vars
-sed -i "s/^#set_var EASYRSA_REQ_CITY.*/set_var EASYRSA_REQ_CITY       \"$KEY_CITY\"/g" ${openvpn_ca}/vars
-sed -i "s/^#set_var EASYRSA_REQ_ORG.*/set_var EASYRSA_REQ_ORG        \"$KEY_ORG\"/g" ${openvpn_ca}/vars
-sed -i "s/^#set_var EASYRSA_REQ_EMAIL.*/set_var EASYRSA_REQ_EMAIL      \"$KEY_ORG\"/g" ${openvpn_ca}/vars
-sed -i "s/^#set_var EASYRSA_REQ_OU.*/set_var EASYRSA_REQ_OU         \"$KEY_ORG\"/g" ${openvpn_ca}/vars
-
-sed -i "s/^#set_var EASYRSA_REQ_CN.*/set_var EASYRSA_REQ_CN         \"server\"/g" ${openvpn_ca}/vars
-
-
-
-
+cd ${openvpn_ca}
+if [ ! -f "openssl.cnf" ] ; then
+    ln -s openssl-1.0.0.cnf openssl.cnf
+fi
 
 # Building the CA
-./easyrsa init-pki
-./easyrsa --batch build-ca nopass
+cd ${openvpn_ca}
+source vars
+
+# Clean all
+./clean-all
+
+export EASY_RSA="${EASY_RSA:-.}"
+
+# build root CA
+#./build-ca
+"$EASY_RSA/pkitool" --initca
+
+# generating the OpenVPN server certificate and key pair
+#./build-key-server server
+"$EASY_RSA/pkitool" --server server
+
+# generating a robust Diffie-Hellman key
+./build-dh
+
+# generating a HMAC signature
+openvpn --genkey --secret keys/ta.key
 
 
-# Creating the Server Certificate, Key, and Encryption Files
-./easyrsa --batch gen-req server nopass
-cp -ax ${openvpn_ca}/pki/private/server.key /etc/openvpn/
-./easyrsa --batch --req-cn=server gen-req server nopass
-./easyrsa --batch sign-req server server
-cp -ax ${openvpn_ca}/pki/issued/server.crt /etc/openvpn/
-cp -ax ${openvpn_ca}/pki/ca.crt /etc/openvpn/
-
-
-# create a strong Diffie-Hellman key
-./easyrsa --batch gen-dh
-openvpn --genkey --secret ta.key
-cp -ax ${openvpn_ca}/ta.key /etc/openvpn/
-cp -ax ${openvpn_ca}/pki/dh.pem /etc/openvpn/
-
-
-# Generating a Client Certificate and Key Pair
-mkdir -p ${clients}/keys
-chmod -R 700 ${clients}
-./easyrsa --batch gen-req client1 nopass
-cp -ax  ${openvpn_ca}/pki/private/client1.key ${clients}/keys/
-./easyrsa --batch sign-req client client1
-cp ${openvpn_ca}/ta.key ~/client-configs/keys/
-cp /etc/openvpn/ca.crt ~/client-configs/keys/
+# Configurate OpenVPN server
+cd ${openvpn_ca}/keys
+cp -ax ca.crt server.crt server.key ta.key dh2048.pem /etc/openvpn/
 
 
 # Adjusting the Server Networking Configuration
 sed -i 's/^#net.ipv4.ip_forward=1.*/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
 sysctl -p
 
+# OpenVPN Configuration
+gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > /etc/openvpn/server.conf
+
+sed -i 's/^proto udp.*/;proto udp/g' /etc/openvpn/server.conf
+sed -i 's/^;proto tcp.*/proto tcp/g' /etc/openvpn/server.conf
+sed -i 's/^proto .*/proto tcp/g' /etc/openvpn/server.conf
+
+sed -i 's/^port .*/port 10443/g' /etc/openvpn/server.conf
+
+sed -i 's/^;tls-auth .*/tls-auth ta.key 0/g' /etc/openvpn/server.conf
+sed -i '/^tls-auth ta.key 0/a key-direction 0' /etc/openvpn/server.conf
+
+sed -i 's/^;cipher .*/cipher AES-256-CBC/g' /etc/openvpn/server.conf
+sed -i '/^cipher AES-256-CBC/a auth SHA256' /etc/openvpn/server.conf
+
+sed -i 's/^;user .*/user nobody/g' /etc/openvpn/server.conf
+sed -i 's/^;group .*/group nogroup/g' /etc/openvpn/server.conf
+
+sed -i 's/^explicit-exit-notify /;explicit-exit-notify /g' /etc/openvpn/server.conf
+
 
 # Adjusting UFW configuration
-apt install -y ufw
-#
-sed -i "/^# Don't delete these required lines.*/i # START OPENVPN RULES\n# NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0] \n# Allow traffic from OpenVPN client to eth0 (change to the interface you discovered)\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n" /etc/ufw/before.rules
-sed -i 's/^DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/g' /etc/default/ufw
-ufw allow 1194/udp
-ufw allow OpenSSH
-ufw disable
-ufw enable
+#apt install -y ufw
+##
+#sed -i "/^# Don't delete these required lines.*/i # START OPENVPN RULES\n# NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0] \n# Allow traffic from OpenVPN client to eth0 (change to the interface you discovered)\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n" /etc/ufw/before.rules
+#sed -i 's/^DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/g' /etc/default/ufw
+#ufw allow 1194/udp
+#ufw allow OpenSSH
+#ufw disable
+#ufw enable
+
+exit 0
+
+# Virtual interface
+mkdir -p /dev/net
+mknod /dev/net/tun c 10 200
 
 
 # Starting and Enabling the OpenVPN Service
@@ -146,33 +164,6 @@ systemctl enable openvpn@server
 
 ip addr show tun0
 
-
-
-exit 0
-
-if [ ! -f "openssl.cnf" ] ; then
-    ln -s openssl-1.0.0.cnf openssl.cnf
-fi
-
-source vars
-
-# Clean all
-./clean-all
-
-# build root CA
-./build-ca
-
-# generating the OpenVPN server certificate and key pair
-./build-key-server server
-
-
-
-
-
-
 # Show IP
 ip=$(hostname -I)
-echo " >>>>  Please open ${ip} <<<<"
-
-
-
+echo " >>>>  OpenVPN IP: ${ip} <<<<"
