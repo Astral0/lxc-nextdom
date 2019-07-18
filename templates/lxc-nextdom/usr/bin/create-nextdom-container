@@ -111,7 +111,7 @@ fi
 
 # Test if backup is needed
 if [ -z ${NEXTDOM_BACKUP} ] ; then
-    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "/etc/lxc-nextdom/bin/install_${PRODUCT_NAME}.sh" ] ; then
+    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
         needbackup="1"
     else
         needbackup="0"
@@ -341,8 +341,12 @@ step_start_container() {
         sleep 3
         ip=$(lxc-info -n ${LXC_NAME} -iH)
     fi
-    echo "\n\n>>>>> Open Nextdom Website : https://${ip} <<<<<\n\n"
-
+    #
+    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
+        echo "\n\n>>>>> Open Nextdom Website (http or https) with IP: ${ip} <<<<<\n\n"
+    else
+        echo "\n\n>>>>> Container IP: ${ip} <<<<<\n\n"
+    fi
 }
 
 

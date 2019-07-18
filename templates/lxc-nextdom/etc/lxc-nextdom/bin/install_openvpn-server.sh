@@ -151,7 +151,6 @@ sed -i 's/^explicit-exit-notify /;explicit-exit-notify /g' /etc/openvpn/server.c
 #ufw disable
 #ufw enable
 
-exit 0
 
 # Virtual interface
 mkdir -p /dev/net
