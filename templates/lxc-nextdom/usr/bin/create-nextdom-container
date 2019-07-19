@@ -236,10 +236,15 @@ step_prepare_config() {
     # Autostart container
     echo "lxc.start.auto = 1" >>${config}
     #
+    # Macvlan Bridged (allow container to contact other containers - but not the host! see http://noyaudolive.net/2012/05/09/lxc-and-macvlan-host-to-guest-connection/)
+    echo "lxc.network.macvlan.mode = bridge" >>${config}
+    #
     # OpenVPN (for Unprivileged containers)
     mkdir -p ${ROOT_CONTAINER}/rootfs/dev/net
     mknod ${ROOT_CONTAINER}/rootfs/dev/net/tun c 10 200
     #echo "lxc.mount.entry = /dev/net/tun ${ROOT_CONTAINER}/rootfs/dev/net/tun none bind create=file" >>${config}
+    echo "lxc.cgroup.devices.allow = c 10:200 rwm" >>${config}
+    echo 'lxc.hook.autodev = sh -c "modprobe tun; cd ${LXC_ROOTFS_MOUNT}/dev; mkdir net; mknod net/tun c 10 200; chmod 0666 net/tun"' >>${config}
     #
     # Add container hostname in /etc/hosts
     echo "127.0.1.1       ${LXC_NAME}"  >> ${ROOT_CONTAINER}/rootfs/etc/hosts
