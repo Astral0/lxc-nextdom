@@ -111,8 +111,12 @@ fi
 
 # Test if backup is needed
 if [ -z ${NEXTDOM_BACKUP} ] ; then
-    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
-        needbackup="1"
+    if [ ! "${PRODUCT_NAME}" == "empty" ] ; then
+        if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
+            needbackup="1"
+        else
+            needbackup="0"
+        fi
     else
         needbackup="0"
     fi
@@ -267,8 +271,8 @@ step_prepare_config() {
     fi
     # Copy special files inside container
     if [ -d "${ETC_DIR}/bin/${PRODUCT_NAME}" ] ; then
-        mkdir -p ${ROOT_CONTAINER}/rootfs/tmp/install/
-        cp -ax ${ETC_DIR}/bin/${PRODUCT_NAME}/* ${ROOT_CONTAINER}/rootfs/tmp/install/
+        mkdir -p ${ROOT_CONTAINER}/rootfs/root/tmp/install/
+        cp -ax ${ETC_DIR}/bin/${PRODUCT_NAME}/* ${ROOT_CONTAINER}/rootfs/root/tmp/install/
     fi
     #
     # Add container in file list
@@ -329,23 +333,38 @@ step_start_container() {
     #
     # Show IP adress
     ip=$(lxc-info -n ${LXC_NAME} -iH)
-    if [ -z ${ip} ] ; then
+    if [ -z "${ip}" ] ; then
         sleep 1
         ip=$(lxc-info -n ${LXC_NAME} -iH)
     fi
-    if [ -z ${ip} ] ; then
+    if [ -z "${ip}" ] ; then
         sleep 2
         ip=$(lxc-info -n ${LXC_NAME} -iH)
     fi
-    if [ -z ${ip} ] ; then
+    if [ -z "${ip}" ] ; then
         sleep 3
         ip=$(lxc-info -n ${LXC_NAME} -iH)
     fi
     #
-    if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
-        echo "\n\n>>>>> Open Nextdom Website (http or https) with IP: ${ip} <<<<<\n\n"
+    if [ -z "${ip}" ] ; then
+        echo ">>>>> Error ! Can't get container IP ! <<<<<"
     else
-        echo "\n\n>>>>> Container IP: ${ip} <<<<<\n\n"
+        #
+        set +e
+        #ipbridged=""
+        #ipbridged=$(echo )
+
+        set -e
+        #
+        if [ ! "${PRODUCT_NAME}" == "empty" ] ; then
+            if [ "${PRODUCT_NAME}" == "nextdom" ] || [ "${PRODUCT_NAME}" == "jeedom" ] || [ ! -f "${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh" ] ; then
+                echo "\n\n>>>>> Open Nextdom Website (http or https) with IP: ${ip} <<<<<\n\n"
+            else
+               echo "\n\n>>>>> Container IP: ${ip} <<<<<\n\n"
+            fi
+        else
+            echo "\n\n>>>>> Container IP: ${ip} <<<<<\n\n"
+        fi
     fi
 }
 

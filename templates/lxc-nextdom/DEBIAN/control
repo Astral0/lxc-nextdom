@@ -3,6 +3,6 @@ Version: 1.0
 Section: web
 Priority: optional
 Architecture: all
-Pre-Depends: lxc, bridge-utils, grep, sed, bash, debootstrap, sudo
+Pre-Depends: lxc, bridge-utils, grep, sed, bash, debootstrap, sudo, coreutils
 Maintainer: contact@nextdom.org
 Description: LXC container with NextDom preinstalled
