@@ -27,10 +27,20 @@ fi
 openvpn_root="/root/vpn"
 openvpn_ca=${openvpn_root}/openvpn-ca
 clients=${openvpn_root}/client-configs
-install_files="/root/install_files"
+install_files="/root/tmp/install"
 
 
-# OpenVPN clients directory
+
+# Creation/effacement du repertoire
+if [ -f ${openvpn_root} ] || [ -d ${openvpn_root} ] ; then
+    if (whiptail --title "${openvpn_root} deja present" --yesno "Effacer ${openvpn_root} ?" 10 60) then
+        rm -rf ${openvpn_root}
+    fi
+fi
+mkdir -p ${openvpn_root}
+
+
+# Copy OpenVPN templates in directory
 mkdir -p ${clients}/
 if [ -f "${install_files}/client.conf" ]; then
     cp ${install_files}/client.conf ${clients}/base.conf
@@ -38,21 +48,15 @@ else
     echo "Error! Client config file not present : ${install_files}/client.conf"
     exit 1
 fi
+if [ -f "${install_files}/make-client-config.sh" ]; then
+    cp ${install_files}/make-client-config.sh ${openvpn_root}/make-client-config.sh
+fi
 
 
 # Prerequis
 apt update
 apt -y upgrade
 apt install -y openvpn easy-rsa wget hostname whiptail gzip
-
-
-# Creation du repertoire
-if [ -f ${openvpn_root} ] || [ -d ${openvpn_root} ] ; then
-    if (whiptail --title "${openvpn_root} deja present" --yesno "Effacer ${openvpn_root} ?" 10 60) then
-        rm -rf ${openvpn_root}
-    fi
-fi
-mkdir -p ${openvpn_root}
 
 
 # Create easy-rsa template dir
@@ -171,7 +175,9 @@ fi
 
 # Virtual interface
 mkdir -p /dev/net
+set +e
 mknod /dev/net/tun c 10 200
+set -e
 
 
 # Starting and Enabling the OpenVPN Service

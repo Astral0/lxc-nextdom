@@ -161,6 +161,7 @@ step_bootstrap_lxc() {
     #
     mkdir -p ${ROOT_CONTAINER}
 #    lxc-create -n ${LXC_NAME} -t debian -f ${TEMPLATES_DIR}/lxc-ndlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}
+    echo "<I> Launch : lxc-create -n ${LXC_NAME} -t debian -f /usr/share/doc/lxc/examples/lxc-macvlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}"
     lxc-create -n ${LXC_NAME} -t debian -f /usr/share/doc/lxc/examples/lxc-macvlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}
 }
 
@@ -244,7 +245,7 @@ step_prepare_config() {
     echo "127.0.1.1       ${LXC_NAME}"  >> ${ROOT_CONTAINER}/rootfs/etc/hosts
     #
     # Copy last jeedom/nextdom backup from host if exists (and if needeed)
-    if [ ${needbackup} == "1" ] ; then
+    if [ ${needbackup} = "1" ] ; then
         backupfile=""
         if [ ! -z ${NEXTDOM_BACKUP} ] ; then
             if [ -f "${NEXTDOM_BACKUP}" ] ; then
@@ -267,7 +268,10 @@ step_prepare_config() {
             mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
             chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
             cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-        fi
+            if [ ${needbackup} = "0" ] ; then
+			    print_log_in "\n<I> Backup file copied. You can restore it from Nextdom web interface.\n"
+            fi
+		fi
     fi
     # Copy special files inside container
     if [ -d "${ETC_DIR}/bin/${PRODUCT_NAME}" ] ; then
@@ -293,6 +297,7 @@ step_prepare_config() {
 step_start_container() {
 
     # Start container
+    echo "<I> Launch : lxc-start -n ${LXC_NAME}"
     lxc-start -n ${LXC_NAME}
     #
     # Install Nextdom inside container
@@ -308,27 +313,6 @@ step_start_container() {
         chmod 755 ${ROOT_CONTAINER}/rootfs/root/install.sh
         sleep 2
         lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}
-    fi
-    #
-    # Just copy backup file if detected on host (and if produc is nextdom, jeedom or any nextdom dev)
-    if [ ${needbackup} == "1" ] ; then
-        backupfile=
-        if [ -z ${NEXTDOM_BACKUP} ] ; then
-            if [ -d "/var/www/html/backup" ] ; then
-                backupfile=$(ls -atr /var/www/html/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
-            fi
-            if [ -d "/var/lib/nextdom/backup" ] ; then
-                if [ -z ${backupfile} ] ; then
-                    backupfile=$(ls -atr /var/lib/nextdom/backup/backup* 2>/dev/null | tail -1) >/dev/null 2>/dev/null
-                fi
-            fi
-        fi
-        if [ -f "${backupfile}" ] ; then
-            mkdir -p ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-            chmod 755 ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-            cp -ax ${backupfile} ${ROOT_CONTAINER}/rootfs/var/lib/nextdom/backup
-            print_log_in "\n<I> Backup file copied. You can restore it from Nextdom web interface.\n"
-        fi
     fi
     #
     # Show IP adress
