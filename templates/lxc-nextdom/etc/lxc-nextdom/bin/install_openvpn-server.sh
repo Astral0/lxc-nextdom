@@ -27,6 +27,18 @@ fi
 openvpn_root="/root/vpn"
 openvpn_ca=${openvpn_root}/openvpn-ca
 clients=${openvpn_root}/client-configs
+install_files="/root/install_files"
+
+
+# OpenVPN clients directory
+mkdir -p ${clients}/
+if [ -f "${install_files}/client.conf" ]; then
+    cp ${install_files}/client.conf ${clients}/base.conf
+else
+    echo "Error! Client config file not present : ${install_files}/client.conf"
+    exit 1
+fi
+
 
 # Prerequis
 apt update
@@ -46,6 +58,7 @@ mkdir -p ${openvpn_root}
 # Create easy-rsa template dir
 make-cadir ${openvpn_ca}
 cd ${openvpn_ca}
+
 
 # Config vars file
 if [ -f "/root/vars" ] ; then
@@ -120,25 +133,29 @@ cp -ax ca.crt server.crt server.key ta.key dh2048.pem /etc/openvpn/
 sed -i 's/^#net.ipv4.ip_forward=1.*/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
 sysctl -p
 
-# OpenVPN Configuration
-gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > /etc/openvpn/server.conf
+# OpenVPN server config file
+if [ -f "${install_files}/server.conf" ]; then
+    cp ${install_files}/server.conf /etc/openvpn/server.conf
+else
+    gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > /etc/openvpn/server.conf
 
-sed -i 's/^proto udp.*/;proto udp/g' /etc/openvpn/server.conf
-sed -i 's/^;proto tcp.*/proto tcp/g' /etc/openvpn/server.conf
-sed -i 's/^proto .*/proto tcp/g' /etc/openvpn/server.conf
+    sed -i 's/^proto udp.*/;proto udp/g' /etc/openvpn/server.conf
+    sed -i 's/^;proto tcp.*/proto tcp/g' /etc/openvpn/server.conf
+    sed -i 's/^proto .*/proto tcp/g' /etc/openvpn/server.conf
 
-sed -i 's/^port .*/port 10443/g' /etc/openvpn/server.conf
+    sed -i 's/^port .*/port 8443/g' /etc/openvpn/server.conf
 
-sed -i 's/^;tls-auth .*/tls-auth ta.key 0/g' /etc/openvpn/server.conf
-sed -i '/^tls-auth ta.key 0/a key-direction 0' /etc/openvpn/server.conf
+    sed -i 's/^;tls-auth .*/tls-auth ta.key 0/g' /etc/openvpn/server.conf
+    sed -i '/^tls-auth ta.key 0/a key-direction 0' /etc/openvpn/server.conf
 
-sed -i 's/^;cipher .*/cipher AES-256-CBC/g' /etc/openvpn/server.conf
-sed -i '/^cipher AES-256-CBC/a auth SHA256' /etc/openvpn/server.conf
+    sed -i 's/^;cipher .*/cipher AES-256-CBC/g' /etc/openvpn/server.conf
+    sed -i '/^cipher AES-256-CBC/a auth SHA256' /etc/openvpn/server.conf
 
-sed -i 's/^;user .*/user nobody/g' /etc/openvpn/server.conf
-sed -i 's/^;group .*/group nogroup/g' /etc/openvpn/server.conf
+    sed -i 's/^;user .*/user nobody/g' /etc/openvpn/server.conf
+    sed -i 's/^;group .*/group nogroup/g' /etc/openvpn/server.conf
 
-sed -i 's/^explicit-exit-notify /;explicit-exit-notify /g' /etc/openvpn/server.conf
+    sed -i 's/^explicit-exit-notify /;explicit-exit-notify /g' /etc/openvpn/server.conf
+fi
 
 
 # Adjusting UFW configuration
