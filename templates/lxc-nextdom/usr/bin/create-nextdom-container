@@ -102,6 +102,7 @@ set_root $0
 if [ ! -z ${NEXTDOM_BACKUP} ] ; then
     if [ -f "${NEXTDOM_BACKUP}" ] ; then
         backupfile=${NEXTDOM_BACKUP}
+        needbackup="1"
     else
         print_log_in "\n<A> Missing backup file : ${NEXTDOM_BACKUP}\n"
         exit 1
@@ -136,7 +137,7 @@ step_verify_missing_packages() {
     #
     done
     #
-    if [[ ! ${LIST} = "" ]] ; then
+    if [ ! "${LIST}" = "" ] ; then
         print_log_in "\n<F> Missing Debian package : ${LIST}\n"
         exit 1
     fi
@@ -160,9 +161,17 @@ step_bootstrap_lxc() {
     fi
     #
     mkdir -p ${ROOT_CONTAINER}
-#    lxc-create -n ${LXC_NAME} -t debian -f ${TEMPLATES_DIR}/lxc-ndlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}
-    echo "<I> Launch : lxc-create -n ${LXC_NAME} -t debian -f /usr/share/doc/lxc/examples/lxc-macvlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}"
-    lxc-create -n ${LXC_NAME} -t debian -f /usr/share/doc/lxc/examples/lxc-macvlan.conf -P ${LXC_DIR}  -- -r ${DEB_VERS}
+    #
+    if [ -f /usr/share/doc/lxc/examples/lxc-macvlan.conf ] ; then
+        # Debian 9
+        template="/usr/share/doc/lxc/examples/lxc-macvlan.conf"
+        echo "<I> Launch : lxc-create -n ${LXC_NAME} -t debian -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERS}"
+        lxc-create -n ${LXC_NAME} -t debian -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERS}
+    else
+        echo "<I> lxc-create -t download -n ${LXC_NAME} -- --dist debian --release ${DEB_VERS} --arch amd64"
+        lxc-create -t download -n ${LXC_NAME} -- --dist debian --release ${DEB_VERS} --arch amd64
+    fi
+    #
 }
 
 
@@ -201,33 +210,84 @@ step_prepare_config() {
     if [[ -f "${config}" ]] ; then cp -ax ${config} ${configold} ; fi
     sleep 1 &&
     #
-    # Hack for Ubuntu LXC (that do not setup network in container config file!)
-    if [ -z "$(grep "^lxc.network.type" ${config})" ] ; then echo "lxc.network.type = macvlan" >>${config} ; fi
-    if [ -z "$(grep "^lxc.network.flags" ${config})" ] ; then echo "lxc.network.flags = up" >>${config} ; fi
-    if [ -z "$(grep "^lxc.network.link" ${config})" ] ; then echo "lxc.network.link = eth0" >>${config} ; fi
-    if [ -z "$(grep "^lxc.network.hwaddr" ${config})" ] ; then echo "lxc.network.hwaddr = 4a:49:43:49:79:bd" >>${config} ; fi
-    if [ -z "$(grep "^lxc.network.ipv4" ${config})" ] ; then echo "lxc.network.ipv4 = 10.2.3.4/24" >>${config} ; fi
-    #
-    # Change bridged interface
-    sed -i 's/^lxc.network.link.*/lxc.network.link = ndlan0/g' ${config}
-    #
-    # Comment ipv4 if DHCP mode or setup IP
-    if [ -z ${LXC_CIDR} ] ; then
-        sed -i 's/^lxc.network.ipv4/#lxc.network.ipv4/g' ${config}
-        sed -i "/^lxc.network.ipv4/a #lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
-    else
-        sed -i "s#^lxc.network.ipv4.*#lxc.network.ipv4= ${LXC_CIDR}#g" ${config}
-        sed -i 's/^auto eth0/#auto eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
-        sed -i 's/^iface eth0/#iface eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
-        sed -i "/^lxc.network.ipv4/a lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+    # Hack for some Linux distro (like Ubuntu 16.04) that do not setup network in container config file!
+    if [ -z "$(grep "^lxc.network.type " ${config})" ] && [ -z "$(grep "^lxc.net.0.type" ${config})" ] ; then
+        if [ -z "$(grep "^lxc.network.type" ${config})" ] ; then echo "lxc.network.type = macvlan" >>${config} ; fi
+        if [ -z "$(grep "^lxc.network.flags" ${config})" ] ; then echo "lxc.network.flags = up" >>${config} ; fi
+        if [ -z "$(grep "^lxc.network.link" ${config})" ] ; then echo "lxc.network.link = eth0" >>${config} ; fi
+        if [ -z "$(grep "^lxc.network.hwaddr" ${config})" ] ; then echo "lxc.network.hwaddr = 4a:49:43:49:79:bd" >>${config} ; fi
+        if [ -z "$(grep "^lxc.network.ipv4" ${config})" ] ; then echo "lxc.network.ipv4 = 10.2.3.4/24" >>${config} ; fi
     fi
     #
-    # Suppress ipv6 compatibility
-    sed -i 's/^lxc.network.ipv6/#lxc.network.ipv6/g' ${config}
-    echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs/etc/sysctl.conf
-    #
-    # Change MAC
-    sed -i "s/^lxc.network.hwaddr.*/lxc.network.hwaddr = ${MAC}/g" ${config}
+    # LXC 2.x (Debian 9, ...)
+    if [ ! -z "$(grep "^lxc.network.type " ${config})" ] ; then
+
+        #
+        # Change bridged interface
+        sed -i 's/^lxc.netword.type.*/lxc.netword.type = macvlan/g' ${config}
+        sed -i 's/^lxc.network.link.*/lxc.network.link = ndlan0/g' ${config}
+        #
+        # Comment ipv4 if DHCP mode or setup IP
+        if [ -z ${LXC_CIDR} ] ; then
+            sed -i 's/^lxc.network.ipv4/#lxc.network.ipv4/g' ${config}
+            sed -i "/^lxc.network.ipv4/a #lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+        else
+            sed -i "s#^lxc.network.ipv4.*#lxc.network.ipv4 = ${LXC_CIDR}#g" ${config}
+            sed -i "/^lxc.network.ipv4/a lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+            sed -i 's/^auto eth0/#auto eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
+            sed -i 's/^iface eth0/#iface eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
+        fi
+        #
+        # Suppress ipv6 compatibility
+        sed -i 's/^lxc.network.ipv6/#lxc.network.ipv6/g' ${config}
+        echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs/etc/sysctl.conf
+        #
+        # Change MAC
+        sed -i "s/^lxc.network.hwaddr.*/lxc.network.hwaddr = ${MAC}/g" ${config}
+        #
+        # Macvlan Bridged (allow container to contact other containers - but not the host! see http://noyaudolive.net/2012/2012/05/09/lxc-and-macvlan-host-to-guest-connection/)
+        echo "lxc.network.macvlan.mode = bridge" >>${config}
+        #
+
+    # LXC 3.x (Ubuntu 18.04, ...)
+    elif [ ! -z "$(grep "^lxc.net.0.type " ${config})" ] ; then
+
+        # Change bridged interface
+        sed -i 's/^lxc.net.0.type.*/lxc.net.0.type = macvlan/g' ${config}
+        sed -i 's/^lxc.net.0.link.*/lxc.net.0.link = ndlan0/g' ${config}
+
+        # Comment ipv4 if DHCP mode or setup IP
+        if [ -z ${LXC_CIDR} ] ; then
+            sed -i 's/^lxc.net.0.ipv4.address/#lxc.net.0.ipv4.address/g' ${config}
+            sed -i "/^lxc.net.0.ipv4.address/a #lxc.net.0.ipv4.gateway = ${GATEWAY}" ${config}
+        else
+            if [ -z "$(grep "^lxc.net.0.ipv4.address " ${config})" ] ; then
+                echo "lxc.net.0.ipv4.address = ${LXC_CIDR}" >>${config}
+            else
+                sed -i "s#^lxc.net.0.ipv4.address .*#lxc.net.0.ipv4= ${LXC_CIDR}#g" ${config}
+            fi
+            if [ -z "$(grep "^lxc.net.0.ipv4.gateway " ${config})" ] ; then
+                echo "lxc.net.0.ipv4.gateway = ${GATEWAY}" >>${config}
+            else
+                sed -i "/^lxc.net.0.ipv4.address /a lxc.net.0.ipv4.gateway = ${GATEWAY}" ${config}
+            fi
+            sed -i 's/^auto eth0/#auto eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
+            sed -i 's/^iface eth0/#iface eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
+        fi
+        #
+        # Suppress ipv6 compatibility
+        sed -i 's/^lxc.net.0.ipv6/#lxc.net.0.ipv6/g' ${config}
+        echo "net.ipv6.conf.all.disable_ipv6 = 1" >> ${ROOT_CONTAINER}/rootfs/etc/sysctl.conf
+        #
+        # Change MAC
+        sed -i "s/^lxc.net.0.hwaddr.*/lxc.net.0.hwaddr = ${MAC}/g" ${config}
+        #
+
+    else
+        config_error=1
+        echo "<F> Error : can't get Linux ditro type! Please adjust manually ${config} and run 'lxc-start -n ${LXC_NAME}' !"
+        exit 1
+    fi
     #
     # Add pre script
     echo "lxc.hook.pre-start = /etc/lxc-nextdom/bin/lxc_network_start.sh" >>${config}
@@ -235,9 +295,6 @@ step_prepare_config() {
     #
     # Autostart container
     echo "lxc.start.auto = 1" >>${config}
-    #
-    # Macvlan Bridged (allow container to contact other containers - but not the host! see http://noyaudolive.net/2012/05/09/lxc-and-macvlan-host-to-guest-connection/)
-    echo "lxc.network.macvlan.mode = bridge" >>${config}
     #
     # OpenVPN (for Unprivileged containers)
     mkdir -p ${ROOT_CONTAINER}/rootfs/dev/net
@@ -250,7 +307,7 @@ step_prepare_config() {
     echo "127.0.1.1       ${LXC_NAME}"  >> ${ROOT_CONTAINER}/rootfs/etc/hosts
     #
     # Copy last jeedom/nextdom backup from host if exists (and if needeed)
-    if [ ${needbackup} = "1" ] ; then
+    if [ "${needbackup}" == "1" ] ; then
         backupfile=""
         if [ ! -z ${NEXTDOM_BACKUP} ] ; then
             if [ -f "${NEXTDOM_BACKUP}" ] ; then
@@ -305,18 +362,28 @@ step_start_container() {
     echo "<I> Launch : lxc-start -n ${LXC_NAME}"
     lxc-start -n ${LXC_NAME}
     #
-    # Install Nextdom inside container
-    arg=
-    if [ ! ${PRODUCT_NAME} = "empty" ] ; then
-        if [ -f ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ] ; then
-            cp -ax ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-        else
+    # Hack for /etc/resolv.conf (can be empty for some Linux distro like Ubuntu 18.04)
+    resolv_file=${ROOT_CONTAINER}/rootfs/etc/resolv.conf
+    if [ ! -f ${resolv_file} ] ; then
+        echo "nameserver 8.8.8.8" >${resolv_file}
+    else
+        if [ ! -s "$_file" ] ; then
+            echo "nameserver 8.8.8.8" >${resolv_file}
+        fi
+    fi
+    #
+    # Install Product inside container
+    if [ ! "${PRODUCT_NAME}" == "empty" ] ; then
+        if [ ! -f ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ] || [ "${PRODUCT_NAME}" == "nextdom" ] ; then
             cp -ax ${ETC_DIR}/bin/install_nextdom.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
-            #sed -i "s#PRODUCT_NAME#${PRODUCT_NAME}#g" ${ROOT_CONTAINER}/rootfs/root/install_nextdom.sh
             arg="${PRODUCT_NAME}"
+        else
+            cp -ax ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
+            arg=""
         fi
         chmod 755 ${ROOT_CONTAINER}/rootfs/root/install.sh
         sleep 2
+        echo "lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}"
         lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}
     fi
     #

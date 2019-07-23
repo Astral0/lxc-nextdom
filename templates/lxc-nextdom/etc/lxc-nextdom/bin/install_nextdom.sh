@@ -1,6 +1,7 @@
 #!/bin/bash
 
 arg=$1
+echo $arg
 
 # Prerequis
 apt update
@@ -12,7 +13,7 @@ echo "deb  http://debian.nextdom.org/debian  nextdom main" >/etc/apt/sources.lis
 apt update
 
 # Nextdom stable
-if [ -z $arg} ] ; then
+if [ -z $arg} ] || [ "$arg" == "nextdom" ] ; then
     apt -y install nextdom
 
 # Nextdom development
@@ -32,7 +33,7 @@ else
     echo "Change branch"
     git checkout ${arg}
     #
-    sudo ./install/postinst
+    bash -x ./install/postinst
 
 fi
 
