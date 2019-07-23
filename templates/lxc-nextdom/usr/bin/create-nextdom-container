@@ -282,7 +282,8 @@ step_prepare_config() {
         # Change MAC
         sed -i "s/^lxc.net.0.hwaddr.*/lxc.net.0.hwaddr = ${MAC}/g" ${config}
         #
-
+        # Macvlan Bridged (allow container to contact other containers - but not the host! see http://noyaudolive.net/2$
+        echo "lxc.net.0.macvlan.mode = bridge" >>${config}
     else
         config_error=1
         echo "<F> Error : can't get Linux ditro type! Please adjust manually ${config} and run 'lxc-start -n ${LXC_NAME}' !"
@@ -336,6 +337,11 @@ step_prepare_config() {
 		fi
     fi
     # Copy special files inside container
+    if [ -d "${ETC_DIR}/bin/base/${DEB_VERS}" ] ; then
+        mkdir -p ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/
+        cp -ax ${ETC_DIR}/bin/base/${DEB_VERS}/* ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/
+    fi
+    #
     if [ -d "${ETC_DIR}/bin/${PRODUCT_NAME}" ] ; then
         mkdir -p ${ROOT_CONTAINER}/rootfs/root/tmp/install/
         cp -ax ${ETC_DIR}/bin/${PRODUCT_NAME}/* ${ROOT_CONTAINER}/rootfs/root/tmp/install/
