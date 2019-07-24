@@ -219,21 +219,28 @@ step_prepare_config() {
         if [ -z "$(grep "^lxc.network.ipv4" ${config})" ] ; then echo "lxc.network.ipv4 = 10.2.3.4/24" >>${config} ; fi
     fi
     #
-    # LXC 2.x (Debian 9, ...)
+    # LXC 2.x (Debian 9, Ubuntu 16.04, ...)
     if [ ! -z "$(grep "^lxc.network.type " ${config})" ] ; then
 
-        #
         # Change bridged interface
-        sed -i 's/^lxc.netword.type.*/lxc.netword.type = macvlan/g' ${config}
+        sed -i 's/^lxc.network.type.*/lxc.network.type = macvlan/g' ${config}
         sed -i 's/^lxc.network.link.*/lxc.network.link = ndlan0/g' ${config}
         #
         # Comment ipv4 if DHCP mode or setup IP
         if [ -z ${LXC_CIDR} ] ; then
             sed -i 's/^lxc.network.ipv4/#lxc.network.ipv4/g' ${config}
-            sed -i "/^lxc.network.ipv4/a #lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+            sed -i "/^#lxc.network.ipv4/a #lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
         else
-            sed -i "s#^lxc.network.ipv4.*#lxc.network.ipv4 = ${LXC_CIDR}#g" ${config}
-            sed -i "/^lxc.network.ipv4/a lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+            if [ -z "$(grep "^lxc.network.ipv4 " ${config})" ] ; then
+			    echo "lxc.network.ipv4 = ${LXC_CIDR}" >>${config}
+            else
+                sed -i "s#^lxc.network.ipv4.*#lxc.network.ipv4 = ${LXC_CIDR}#g" ${config}
+            fi
+            if [ -z "$(grep "^lxc.network.ipv4.gateway " ${config})" ] ; then
+                echo "lxc.network.ipv4.gateway = ${GATEWAY}" >>${config}
+            else
+                sed -i "/^lxc.network.ipv4.address /a lxc.network.ipv4.gateway = ${GATEWAY}" ${config}
+            fi
             sed -i 's/^auto eth0/#auto eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
             sed -i 's/^iface eth0/#iface eth0/g' ${ROOT_CONTAINER}/rootfs/etc/network/interfaces
         fi
