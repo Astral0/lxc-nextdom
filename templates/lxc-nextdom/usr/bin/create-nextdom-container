@@ -5,9 +5,7 @@ set -e
 # Variables
 VAR_DIR=/var/lib/lxc-nextdom
 ETC_DIR=/etc/lxc-nextdom
-#TEMPLATES_DIR=/usr/share/lxc-nextdom/config
 LXC_DIR=/var/lib/lxc
-DEB_VERS=stretch
 
 # Arguments
 usage() { echo "Usage: $0
@@ -24,12 +22,13 @@ usage() { echo "Usage: $0
             'openvpn-server' : OpenVPN server
              or any text : Nextdom development version with a branch/pr name
   ]
+  [-d <Linux distribution (a Debian or Ubuntu distro name : stretch, buster, xenial, ... - Default=stretch)>]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
   [-r yes <replace container>]
   [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
 " 1>&2; exit 1; }
 
-while getopts "n:p:i:r:b:" option; do
+while getopts "n:p:d:i:r:b:" option; do
     case "${option}" in
         h)
             usage
@@ -39,6 +38,9 @@ while getopts "n:p:i:r:b:" option; do
             ;;
         p)
             PRODUCT_NAME=${OPTARG}
+            ;;
+        d)
+            DEB_VERSION=${OPTARG}
             ;;
         i)
             LXC_CIDR=${OPTARG}
@@ -59,6 +61,7 @@ shift $((OPTIND-1))
 
 LXC_NAME=${LXC_NAME:-"lxc-nextdom"}
 PRODUCT_NAME=${PRODUCT_NAME:-"nextdom"}
+DEB_VERSION=${DEB_VERSION:-"stretch"}
 
 #echo $LXC_NAME
 #echo $PRODUCT_NAME
@@ -97,6 +100,28 @@ set_root() {
 }
 set_root $0
 
+
+# Check Debian/Ubuntu version
+if [ "${PRODUCT_NAME}" == "wetty" ] && [ ! "${DEB_VERSION}" == "xenial" ] ; then
+    echo "<I> For Wetty, switch to Ubuntu Xenial container"
+    DEB_VERSION="xenial"
+fi
+
+
+if [ "${DEB_VERSION}" == "stretch" ] || [ "${DEB_VERSION}" == "buster" ] ; then
+    DISTRO_TYPE="debian"
+elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] ; then
+    DISTRO_TYPE="ubuntu"
+else
+    echo "<F> Error : don't know Deb version : ${DEB_VERSION} !"
+    exit 1
+fi
+
+
+echo $DISTRO_TYPE
+echo $DEB_VERSION
+
+#exit 0
 
 # Test if backup file exists
 if [ ! -z ${NEXTDOM_BACKUP} ] ; then
@@ -165,11 +190,11 @@ step_bootstrap_lxc() {
     if [ -f /usr/share/doc/lxc/examples/lxc-macvlan.conf ] ; then
         # Debian 9
         template="/usr/share/doc/lxc/examples/lxc-macvlan.conf"
-        echo "<I> Launch : lxc-create -n ${LXC_NAME} -t debian -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERS}"
-        lxc-create -n ${LXC_NAME} -t debian -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERS}
+        echo "<I> Launch : lxc-create -n ${LXC_NAME} -t ${DISTRO_TYPE} -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERSION}"
+        lxc-create -n ${LXC_NAME} -t ${DISTRO_TYPE} -f ${template} -P ${LXC_DIR}  -- -r ${DEB_VERSION}
     else
-        echo "<I> lxc-create -t download -n ${LXC_NAME} -- --dist debian --release ${DEB_VERS} --arch amd64"
-        lxc-create -t download -n ${LXC_NAME} -- --dist debian --release ${DEB_VERS} --arch amd64
+        echo "<I> lxc-create -t download -n ${LXC_NAME} -- --dist ${DISTRO_TYPE} --release ${DEB_VERSION} --arch amd64"
+        lxc-create -t download -n ${LXC_NAME} -- --dist ${DISTRO_TYPE} --release ${DEB_VERSION} --arch amd64
     fi
     #
 }
@@ -344,9 +369,9 @@ step_prepare_config() {
 		fi
     fi
     # Copy special files inside container
-    if [ -d "${ETC_DIR}/bin/base/${DEB_VERS}" ] ; then
+    if [ -d "${ETC_DIR}/bin/base/${DEB_VERSION}" ] ; then
         mkdir -p ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/
-        cp -ax ${ETC_DIR}/bin/base/${DEB_VERS}/* ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/
+        cp -ax ${ETC_DIR}/bin/base/${DEB_VERSION}/* ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/
     fi
     #
     if [ -d "${ETC_DIR}/bin/${PRODUCT_NAME}" ] ; then
@@ -385,6 +410,14 @@ step_start_container() {
         fi
     fi
     #
+    # Launch preinst.sh script inside container
+    if [ -f "${ROOT_CONTAINER}/rootfs/root/tmp/install/base/preinst.sh" ] ; then
+        chmod 755 ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/preinst.sh
+        sleep 2
+        echo "lxc-attach -n ${LXC_NAME} -- bash -x /root/tmp/install/base/preinst.sh"
+        lxc-attach -n ${LXC_NAME} -- bash -x /root/tmp/install/base/preinst.sh
+    fi
+    #
     # Install Product inside container
     if [ ! "${PRODUCT_NAME}" == "empty" ] ; then
         if [ ! -f ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ] || [ "${PRODUCT_NAME}" == "nextdom" ] ; then
@@ -395,9 +428,17 @@ step_start_container() {
             arg=""
         fi
         chmod 755 ${ROOT_CONTAINER}/rootfs/root/install.sh
-        sleep 2
+        sleep 1
         echo "lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}"
         lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}
+    fi
+    #
+    # Launch postinst.sh script inside container
+    if [ -f "${ROOT_CONTAINER}/rootfs/root/tmp/install/base/postinst.sh" ] ; then
+        chmod 755 ${ROOT_CONTAINER}/rootfs/root/tmp/install/base/postinst.sh
+        sleep 1
+        echo "lxc-attach -n ${LXC_NAME} -- bash -x /root/tmp/install/base/postinst.sh"
+        lxc-attach -n ${LXC_NAME} -- bash -x /root/tmp/install/base/postinst.sh
     fi
     #
     # Show IP adress

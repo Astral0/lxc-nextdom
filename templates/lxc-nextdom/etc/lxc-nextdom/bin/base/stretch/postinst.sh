@@ -7,3 +7,5 @@
 
 # UnattendedUpgrades
 
+echo "postinst"
+
