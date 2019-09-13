@@ -14,10 +14,34 @@ apt update
 
 # Nextdom stable
 if [ -z $arg} ] || [ "$arg" == "nextdom" ] ; then
+    wget -qO -  http://debian.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
+    echo "deb  http://debian.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
+    apt update
+    #
+    apt -y install nextdom
+
+# Nextdom stable on dev repos
+elif [ -z $arg} ] || [ "$arg" == "nextdom-dev" ] ; then
+    wget -qO -  http://debian-dev.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
+    echo "deb  http://debian-dev.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
+    apt update
+    #
+    apt -y install nextdom
+
+# Nextdom nightly
+elif [ -z $arg} ] || [ "$arg" == "nextdom-nightly" ] ; then
+    wget -qO -  http://debian-nightly.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
+    echo "deb  http://debian-nightly.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
+    apt update
+    #
     apt -y install nextdom
 
 # Nextdom development
 else
+    wget -qO -  http://debian.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
+    echo "deb  http://debian.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
+    apt update
+    #
     apt -y install nextdom-common
 
     if [[ -d "/var/www/nextdomdev" ]] ; then

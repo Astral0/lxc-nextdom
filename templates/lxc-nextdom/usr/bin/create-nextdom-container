@@ -14,6 +14,8 @@ usage() { echo "Usage: $0
   [-p <product type :
             'empty'   : Create an empty container
             'nextdom' : Nextdom stable [default]
+            'nextdom-dev' : Nextdom on dev repos
+            'nextdom-nightly' : Nextdom nightly build
             'jeedom'  : Jeedom stable (yes!)
             'grafana' : Grafana
             'influxdb' : InfluxDB database
