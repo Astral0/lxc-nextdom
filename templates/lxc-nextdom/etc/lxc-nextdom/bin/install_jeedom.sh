@@ -2,6 +2,9 @@
 
 arg=$1
 
+DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND
+
 # Prerequis
 apt update
 apt -y upgrade

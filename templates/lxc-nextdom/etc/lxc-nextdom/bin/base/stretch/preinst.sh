@@ -1,6 +1,13 @@
 #!/bin/bash
 
+set +e
+
+DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND
+
+
 # Try network configuration and wait if network isn't initialised
+sleep 2
 apt update
 iret=$?
 if [ ! "${iret}" == "0" ] ; then
