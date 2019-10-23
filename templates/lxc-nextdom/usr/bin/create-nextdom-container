@@ -22,15 +22,22 @@ usage() { echo "Usage: $0
             'mosquitto' : Mosquitto MQTT server
             'nextdom2influxdb' : Gateway between Nextdom and InfluxDB
             'openvpn-server' : OpenVPN server
+			'motioneye' : MotionEye CCTV solutions
+			'zm_reco' : Zoneminder and Facial reco
              or any text : Nextdom development version with a branch/pr name
   ]
   [-d <Linux distribution (a Debian or Ubuntu distro name : stretch, buster, xenial, ... - Default=stretch)>]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
   [-r yes <replace container>]
   [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
+  
+  # MQTT Broker informations :
+  [-m <MQTT broker IP>]
+  [-u <MQTT broker username>]
+  [-v <MQTT broker password>]
 " 1>&2; exit 1; }
 
-while getopts "n:p:d:i:r:b:" option; do
+while getopts "h:n:p:d:i:r:b:m:u:v:" option; do
     case "${option}" in
         h)
             usage
@@ -52,6 +59,15 @@ while getopts "n:p:d:i:r:b:" option; do
             ;;
         b)
             NEXTDOM_BACKUP=${OPTARG}
+            ;;
+        m)
+            MQTT_IP=${OPTARG}
+            ;;
+        u)
+            MQTT_USER=${OPTARG}
+            ;;
+        v)
+            MQTT_PASS=${OPTARG}
             ;;
         *)
             usage
@@ -110,6 +126,30 @@ if [ "${PRODUCT_NAME}" == "wetty" ] && [ ! "${DEB_VERSION}" == "xenial" ] ; then
 fi
 
 
+if [ "${PRODUCT_NAME}" == "zm_reco" ] ; then
+    if [ ! "${DEB_VERSION}" == "stretch" ] ; then
+        echo "<I> For ZM, switch to Stretch container"
+        DEB_VERSION="stretch"
+    fi
+    if [ -z ${LXC_CIDR} ] ; then
+        echo "<F> For ZM, you need to fix IP, please add -i switch"
+        exit 1
+    fi
+    if [ -z ${MQTT_IP} ] ; then
+        echo "<F> For ZM, you need MQTT IP, please add -m switch"
+        exit 1
+    fi
+    if [ -z ${MQTT_USER} ] ; then
+        echo "<F> For ZM, you need MQTT user, please add -u switch"
+        exit 1
+    fi
+    if [ -z ${MQTT_PASS} ] ; then
+        echo "<F> For ZM, you need MQTT password, please add -v switch"
+        exit 1
+    fi
+fi
+
+
 if [ "${DEB_VERSION}" == "stretch" ] || [ "${DEB_VERSION}" == "buster" ] ; then
     DISTRO_TYPE="debian"
 elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] ; then
@@ -120,6 +160,7 @@ else
 fi
 
 
+echo $PRODUCT_NAME
 echo $DISTRO_TYPE
 echo $DEB_VERSION
 
@@ -212,7 +253,7 @@ step_generate_mac() {
 
 
 step_get_gateway() {
-    GA=$(ip route | grep default | tail -1 | awk -F" " '{print $3}')
+    GA=$(ip route | grep default | head -1 | awk -F" " '{print $3}')
     GATEWAY=${GA:-"192.168.x.x"}
 }
 
@@ -405,10 +446,12 @@ step_start_container() {
     # Hack for /etc/resolv.conf (can be empty for some Linux distro like Ubuntu 18.04)
     resolv_file=${ROOT_CONTAINER}/rootfs/etc/resolv.conf
     if [ ! -f ${resolv_file} ] ; then
-        echo "nameserver 8.8.8.8" >${resolv_file}
+        echo "$(grep nameserver /etc/resolv.conf) 8.8.8.8" >${resolv_file}
+        #echo "nameserver 8.8.8.8" >${resolv_file}
     else
         if [ ! -s "$_file" ] ; then
-            echo "nameserver 8.8.8.8" >${resolv_file}
+            echo "$(grep nameserver /etc/resolv.conf) 8.8.8.8" >${resolv_file}
+            #echo "nameserver 8.8.8.8" >${resolv_file}
         fi
     fi
     #
@@ -429,11 +472,25 @@ step_start_container() {
             cp -ax ${ETC_DIR}/bin/install_${PRODUCT_NAME}.sh ${ROOT_CONTAINER}/rootfs/root/install.sh
             arg=""
         fi
+
+        #
+        # Specific parameters for Zoneminder
+        if [ "${PRODUCT_NAME}" == "zm_reco" ] ; then
+	        sed -i "s/^MQTT_IP=.*/MQTT_IP=$MQTT_IP/g" ${ROOT_CONTAINER}/rootfs/root/install.sh
+	        sed -i "s/^MQTT_USER=.*/MQTT_USER=$MQTT_USER/g" ${ROOT_CONTAINER}/rootfs/root/install.sh
+	        sed -i "s/^MQTT_PASS=.*/MQTT_PASS=$MQTT_PASS/g" ${ROOT_CONTAINER}/rootfs/root/install.sh
+        fi
+
+        #
         chmod 755 ${ROOT_CONTAINER}/rootfs/root/install.sh
         sleep 1
+
+        #
+		# Launch installation script inside contaniner
         echo "lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}"
         lxc-attach -n ${LXC_NAME} -- bash -x /root/install.sh ${arg}
     fi
+
     #
     # Launch postinst.sh script inside container
     if [ -f "${ROOT_CONTAINER}/rootfs/root/tmp/install/base/postinst.sh" ] ; then

@@ -30,7 +30,13 @@ if [ ! "${iret}" == "0" ] ; then
     fi
 fi
 
-apt install -y sudo nano wget
+apt install -y sudo nano wget locales
+locale-gen fr_FR.UTF-8
+
+
+sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/g' /root/.bashrc
+sed -i 's/# eval /eval /g' /root/.bashrc
+sed -i 's/# alias ll/alias ls/g' /root/.bashrc
 
 
 # UFW

@@ -11,9 +11,6 @@ apt update
 apt -y upgrade
 apt install -y software-properties-common gnupg wget hostname
 add-apt-repository non-free
-#wget -qO -  http://debian.nextdom.org/debian/nextdom.gpg.key  | apt-key add -
-#echo "deb  http://debian.nextdom.org/debian  nextdom main" >/etc/apt/sources.list.d/nextdom.list
-#apt update
 
 # Nextdom stable
 if [ -z $arg} ] || [ "$arg" == "nextdom" ] ; then
