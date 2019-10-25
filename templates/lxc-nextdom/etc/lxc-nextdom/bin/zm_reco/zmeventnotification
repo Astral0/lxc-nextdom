@@ -1,0 +1,32 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: zmeventnotification-service Required-Start: $local_fs $syslog $remote_fs Required-Stop: $local_fs $syslog $remote_fs Default-Start: 2 3 4 5 Default-Stop: 0 1 6 
+# Short-Description: ZM Daemon Description: zmeventnotification
+### END INIT INFO
+#/*
+# * This file is part of the NextDom software (https://github.com/NextDom or http://nextdom.github.io). * Copyright (c) 2018 NextDom - Slobberbone. * * This program is free 
+# software: you can redistribute it and/or modify * it under the terms of the GNU General Public License as published by * the Free Software Foundation, version 2. * * This program 
+# is distributed in the hope that it will be useful, but * WITHOUT ANY WARRANTY; without even the implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# GNU * General Public License for more details. * * You should have received a copy of the GNU General Public License * along with this program. If not, see 
+# <http://www.gnu.org/licenses/>. */
+case "$1" in
+    start)
+        echo "Starting ZM Daemon for zmeventnotification..."
+            sudo -u www-data /usr/bin/zmeventnotification.pl --config /usr/bin/zmeventnotification.ini
+            echo $! > /run/zmeventnotification.pid
+            ;;
+    stop)
+            echo "Stopping ZM Daemon for zmeventnotification..."
+            kill -9 `cat /run/zmeventnotification.pid`
+            rm /run/zmeventnotification.pid
+            ;;
+    restart)
+            $0 stop
+            sleep 1
+            $0 start
+            ;;
+    *)
+            echo "Usage: $0 {start|stop|restart}"
+            exit 1
+            ;;
+esac

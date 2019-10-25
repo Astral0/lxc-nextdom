@@ -2,13 +2,13 @@
 
 # OpenVPN Deiban 9 version
 
+DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND
+
 set -e
 
 arg1=$1
 arg2=$2
-
-DEBIAN_FRONTEND=noninteractive
-export DEBIAN_FRONTEND
 
 echo " >>>> Installation de OpenVPN Server <<<<"
 

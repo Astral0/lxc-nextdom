@@ -36,7 +36,7 @@ locale-gen fr_FR.UTF-8
 
 sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/g' /root/.bashrc
 sed -i 's/# eval /eval /g' /root/.bashrc
-sed -i 's/# alias ll/alias ls/g' /root/.bashrc
+sed -i 's/# alias ll/alias ll/g' /root/.bashrc
 
 
 # UFW

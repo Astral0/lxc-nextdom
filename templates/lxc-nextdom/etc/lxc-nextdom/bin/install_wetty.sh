@@ -2,11 +2,11 @@
 
 # voir : https://github.com/krishnasrinivas/wetty
 
-#arg1=$1
-#arg2=$2
-
 DEBIAN_FRONTEND=noninteractive
 export DEBIAN_FRONTEND
+
+#arg1=$1
+#arg2=$2
 
 echo " >>>> Installation de Wetty <<<<"
 

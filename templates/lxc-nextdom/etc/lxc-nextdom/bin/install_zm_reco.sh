@@ -1,13 +1,11 @@
 #!/bin/bash
 
 set -e
+
 set -x
 
 #arg1=$1
 #arg2=$2
-
-DEBIAN_FRONTEND=noninteractive
-export DEBIAN_FRONTEND
 
 echo " >>>> Installation de Zoneminder <<<<"
 
@@ -57,7 +55,7 @@ if [ ! -f ${php_ini} ] ; then
     echo "<F> Error : can't get php.ini file !"
 	exit 1
 fi
-sed -i 's#^.*date.timezone =#date.timezone = Europe/Paris#g' /etc/php/7.0/apache2/php.ini
+sed -i 's#^.*date.timezone =#date.timezone = Europe/Paris#g' ${php_ini}
 
 # Restart server
 service apache2 reload
@@ -77,12 +75,87 @@ echo ">>> Self-signed SSL Certificate created in /etc/zm/apache2/ssl/  <<<"
 echo ">>> Please feel free to use your own Certificate                 <<<"
 echo " "
 
+chmod o+r /etc/zm/apache2/ssl/zoneminder.key
+
 a2enmod ssl
 a2ensite default-ssl
 systemctl reload apache2
 
 # For deactivate HTTP access, uncomment below :
 #a2dissite 000-default
+
+zmdc.pl start zmeventnotification.pl
+
+adduser www-data video
+
+# Add service script
+cat << \EOF > /etc/init.d/zmeventnotification
+
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides: zmeventnotification
+# Required-Start: $local_fs $syslog $remote_fs
+# Required-Stop: $local_fs $syslog $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: ZM Daemon 
+# Description: zmeventnotification
+### END INIT INFO
+#/*
+# * This file is part of the NextDom software (https://github.com/NextDom or http://nextdom.github.io).
+# * Copyright (c) 2018 NextDom - Slobberbone.
+# *
+# * This program is free software: you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation, version 2.
+# *
+# * This program is distributed in the hope that it will be useful, but
+# * WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# * General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program. If not, see <http://www.gnu.org/licenses/>.
+# */
+case "$1" in
+    start)
+        echo "Starting ZM Daemon for zmeventnotification..."
+            sudo -u www-data /usr/bin/zmeventnotification.pl --config /etc/zm/zmeventnotification.ini
+            echo $! > /run/zmeventnotification.pid
+            ;;
+    stop)
+            echo "Stopping ZM Daemon for zmeventnotification..."
+            kill -9 `cat /run/zmeventnotification.pid`
+            rm /run/zmeventnotification.pid
+            ;;
+    restart)
+            $0 stop
+            sleep 1
+            $0 start
+            ;;
+    *)
+            echo "Usage: $0 {start|stop|restart}"
+            exit 1
+            ;;
+esac
+EOF
+
+#mkdir -p /var/log/var/log/zmeventnotification/
+#chmod 755 /etc/init.d/zmeventnotification
+#systemctl daemon-reload
+#systemctl enable zmeventnotification
+#systemctl start zmeventnotification
+
+
+#cat << \EOF > /etc/logrotate.conf
+#/var/log/var/log/zmeventnotification/zmeventnotification.log {
+#    missingok
+#    monthly
+#    rotate 1
+#}
+#EOF
+
 
 
 
@@ -155,14 +228,38 @@ pip3 install requests
 pip3 install Shapely
 pip3 install imutils
 
+#export CFLAGS="-j 1"
+#export CPPFLAGS="-j 1"
+#export CXXFLAGS="-j 1"
+
 pip3 install face_recognition
 
+mkdir -p /var/lib/zmeventnotification/images
+mkdir -p /var/lib/zmeventnotification/models
+mkdir -p /var/lib/zmeventnotification/known_faces
+
+# Si vous souhaitez utiliser YoloV3 (lent, précis)
+mkdir -p /var/lib/zmeventnotification/models/
+wget  https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg -O /var/lib/zmeventnotification/models/yolov3/yolov3.cfg
+wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names -O /var/lib/zmeventnotification/models/yolov3/yolov3_classes.txt
+wget  https://pjreddie.com/media/files/yolov3.weights -O /var/lib/zmeventnotification/models/yolov3/yolov3.weights
+
+# Si vous souhaitez utiliser TinyYoloV3 (plus rapide, moins précis)
+mkdir -p /var/lib/zmeventnotification/models/tinyyolosudo wget  https://pjreddie.com/media/files/yolov3-tiny.weights -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.weights
+wget  https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.cfg
+wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.txt
+
+# Config
+cd /usr/bin/zmeventnotification/
+cp hook/objectconfig.ini /etc/zm
+chown -R www-data:www-data /var/lib/zmeventnotification/
+cp -ax hook/detect.py /usr/bin/
 
 
-
-
-
-
+/etc/zm/objectconfig.ini
+sed -i "/^\[general\]$/,/^\[/ s#portal=.*#portal=https://$url/zm#" /etc/zm/objectconfig.ini 
+sed -i "/^\[general\]$/,/^\[/ s#user=.*#user=$username#" /etc/zm/objectconfig.ini 
+sed -i "/^\[general\]$/,/^\[/ s#password=.*#password=$password#" /etc/zm/objectconfig.ini 
 
 
 
