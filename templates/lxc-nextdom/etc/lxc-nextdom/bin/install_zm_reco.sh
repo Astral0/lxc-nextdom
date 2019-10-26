@@ -84,7 +84,7 @@ systemctl reload apache2
 # For deactivate HTTP access, uncomment below :
 #a2dissite 000-default
 
-zmdc.pl start zmeventnotification.pl
+#zmdc.pl start zmeventnotification.pl
 
 adduser www-data video
 
@@ -245,7 +245,8 @@ wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names 
 wget  https://pjreddie.com/media/files/yolov3.weights -O /var/lib/zmeventnotification/models/yolov3/yolov3.weights
 
 # Si vous souhaitez utiliser TinyYoloV3 (plus rapide, moins précis)
-mkdir -p /var/lib/zmeventnotification/models/tinyyolosudo wget  https://pjreddie.com/media/files/yolov3-tiny.weights -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.weights
+mkdir -p /var/lib/zmeventnotification/models/tinyyolosudo
+wget  https://pjreddie.com/media/files/yolov3-tiny.weights -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.weights
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.cfg
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.txt
 
@@ -255,8 +256,6 @@ cp hook/objectconfig.ini /etc/zm
 chown -R www-data:www-data /var/lib/zmeventnotification/
 cp -ax hook/detect.py /usr/bin/
 
-
-/etc/zm/objectconfig.ini
 sed -i "/^\[general\]$/,/^\[/ s#portal=.*#portal=https://$url/zm#" /etc/zm/objectconfig.ini 
 sed -i "/^\[general\]$/,/^\[/ s#user=.*#user=$username#" /etc/zm/objectconfig.ini 
 sed -i "/^\[general\]$/,/^\[/ s#password=.*#password=$password#" /etc/zm/objectconfig.ini 
