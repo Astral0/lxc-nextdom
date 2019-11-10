@@ -262,6 +262,14 @@ sed -i "/^\[general\]$/,/^\[/ s#password=.*#password=$password#" /etc/zm/objectc
 
 
 
+# Restore Cam1
+#set +e
+#cat << \EOF > /tmp/zm_cams.sql
+INSERT INTO `Monitors` VALUES (1,'cam1',0,0,'Ffmpeg','Modect',1,NULL,'','',0,0,NULL,1,NULL,'rtpRtsp',NULL,'','','rtsp://viewer:viewer00@10.0.0.66:554/Streaming/Channels/101',NULL,NULL,NULL,1920,1080,3,0,'0',0,NULL,NULL,3,0,NULL,NULL,'# Lines beginning with # are a comment \r\n# For changing quality, use the crf option\r\n# 1 is best, 51 is worst quality\r\n#crf=23',0,0,-1,-1,-1,-1,'Event-','%N - %d/%m/%y %H:%M:%S',0,0,1,100,0,0,0,0,1,600,10,0,0,NULL,0,NULL,NULL,100,6,6,0,NULL,NULL,NULL,NULL,0,NULL,-1,NULL,100,100,'auto',0,'#0000BE','red',0,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL);
+EOF
+#mysql -u root --database='zm' < /tmp/zm_cams.sql
+#rm -f /tmp/zm_cams.sql
+#set -e
 
 
 
