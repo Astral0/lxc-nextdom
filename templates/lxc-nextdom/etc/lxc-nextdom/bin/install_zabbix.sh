@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 arg1=$1
 arg2=$2
@@ -41,6 +42,14 @@ apt install -y zabbix-server-mysql zabbix-frontend-php zabbix-apache-conf zabbix
 mysql -u root -e "create database zabbix character set utf8 collate utf8_bin;"
 mysql -u root -e "grant all privileges on zabbix.* to zabbix@localhost identified by '${DB_PASS}';"
 zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -uzabbix -p${DB_PASS} zabbix
+
+# Configure
+sed -i "s/^.*DBPassword=.*/DBPassword=${DB_PASS}/g" /etc/zabbix/zabbix_server.conf
+sed -i "s#^.*php_value date.timezone .*#        php_value date.timezone Europe/Paris#g" /etc/zabbix/apache.conf
+
+# Configure
+systemctl restart zabbix-server zabbix-agent apache2
+systemctl enable zabbix-server zabbix-agent apache2
 
 
 # Show IP
