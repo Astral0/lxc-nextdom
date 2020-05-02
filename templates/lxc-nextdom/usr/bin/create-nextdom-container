@@ -11,30 +11,41 @@ LXC_DIR=/var/lib/lxc
 usage() { echo "Usage: $0
   [-h <help>]
   [-n <container name (default: lxc-nextdom)>]
+  
   [-p <product type :
             'empty'   : Create an empty container
+
+        Nextdom:
             'nextdom' : Nextdom stable [default]
             'nextdom-dev' : Nextdom on dev repos
             'nextdom-nightly' : Nextdom nightly build
-            'jeedom'  : Jeedom stable (yes!)
-            'grafana' : Grafana
-            'influxdb' : InfluxDB database
-            'mosquitto' : Mosquitto MQTT server
-            'nextdom2influxdb' : Gateway between Nextdom and InfluxDB
-            'openvpn-server' : OpenVPN server
-			'motioneye' : MotionEye CCTV solutions
-			'zm_reco' : Zoneminder and Facial reco
              or any text : Nextdom development version with a branch/pr name
+
+        InfludDB and Grafana :
+            'influxdb' : InfluxDB database
+            'grafana' : Grafana
+            'nextdom2influxdb' : Gateway between Nextdom and InfluxDB
+
+        Other product:
+            'jeedom'  : Jeedom stable (yes!)
+            'mosquitto' : Mosquitto MQTT server
+            'motioneye' : MotionEye CCTV solutions
+            'openvpn-server' : OpenVPN server
+            'wetty' : WeTTY web terminal
+            'zm_reco' : Zoneminder and Facial reco
   ]
   [-d <Linux distribution (a Debian or Ubuntu distro name : stretch, buster, xenial, ... - Default=stretch)>]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
   [-r yes <replace container>]
-  [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
   
-  # MQTT Broker informations :
+  # Nextdom parameter:
+  [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
+
+  # MQTT Broker parameters:
   [-m <MQTT broker IP>]
   [-u <MQTT broker username>]
   [-v <MQTT broker password>]
+
 " 1>&2; exit 1; }
 
 while getopts "h:n:p:d:i:r:b:m:u:v:" option; do
@@ -125,6 +136,16 @@ if [ "${PRODUCT_NAME}" == "wetty" ] && [ ! "${DEB_VERSION}" == "xenial" ] ; then
     DEB_VERSION="xenial"
 fi
 
+#if [ "${PRODUCT_NAME}" == "veolia-idf" ] && [ ! "${DEB_VERSION}" == "zesty" ] ; then
+#    echo "<I> For Veolia-idf, switch to Ubuntu Zesty container"
+#    DEB_VERSION="zesty"
+#fi
+
+if [ "${PRODUCT_NAME}" == "veolia-idf" ] && [ ! "${DEB_VERSION}" == "buster" ] ; then
+    echo "<I> For Veolia-idf, switch to Debian Buster container"
+    DEB_VERSION="buster"
+fi
+
 
 if [ "${PRODUCT_NAME}" == "zm_reco" ] ; then
     if [ ! "${DEB_VERSION}" == "stretch" ] ; then
@@ -152,7 +173,7 @@ fi
 
 if [ "${DEB_VERSION}" == "stretch" ] || [ "${DEB_VERSION}" == "buster" ] ; then
     DISTRO_TYPE="debian"
-elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] ; then
+elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] || [ "${DEB_VERSION}" == "zesty" ] ; then
     DISTRO_TYPE="ubuntu"
 else
     echo "<F> Error : don't know Deb version : ${DEB_VERSION} !"
@@ -160,9 +181,9 @@ else
 fi
 
 
-echo $PRODUCT_NAME
-echo $DISTRO_TYPE
-echo $DEB_VERSION
+#echo $PRODUCT_NAME
+#echo $DISTRO_TYPE
+#echo $DEB_VERSION
 
 #exit 0
 
@@ -445,6 +466,10 @@ step_start_container() {
     #
     # Hack for /etc/resolv.conf (can be empty for some Linux distro like Ubuntu 18.04)
     resolv_file=${ROOT_CONTAINER}/rootfs/etc/resolv.conf
+    if [ -L ${resolv_file} ] ; then
+        rm -f ${resolv_file}
+    fi
+    #
     if [ ! -f ${resolv_file} ] ; then
         echo "$(grep nameserver /etc/resolv.conf) 8.8.8.8" >${resolv_file}
         #echo "nameserver 8.8.8.8" >${resolv_file}
