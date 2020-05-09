@@ -12,6 +12,13 @@ arg2=$2
 
 echo " >>>> Installation de OpenVPN Server <<<<"
 
+# Params
+openvpn_root="/root/vpn"
+openvpn_ca=${openvpn_root}/openvpn-ca
+clients=${openvpn_root}/client-configs
+install_files="/root/tmp/install"
+
+
 # Check TERM
 if [ -z ${TERM} ] ; then
     export TERM=vt100
@@ -26,12 +33,10 @@ fi
 #echo $TERM
 
 
-# Params
-openvpn_root="/root/vpn"
-openvpn_ca=${openvpn_root}/openvpn-ca
-clients=${openvpn_root}/client-configs
-install_files="/root/tmp/install"
-
+# Prerequisites
+apt update
+apt -y upgrade
+apt install -y openvpn easy-rsa wget hostname whiptail gzip
 
 
 # Creation/effacement du repertoire
@@ -54,12 +59,6 @@ fi
 if [ -f "${install_files}/make-client-config.sh" ]; then
     cp ${install_files}/make-client-config.sh ${openvpn_root}/make-client-config.sh
 fi
-
-
-# Prerequis
-apt update
-apt -y upgrade
-apt install -y openvpn easy-rsa wget hostname whiptail gzip
 
 
 # Create easy-rsa template dir
