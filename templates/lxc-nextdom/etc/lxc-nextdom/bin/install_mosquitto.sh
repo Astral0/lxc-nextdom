@@ -16,7 +16,7 @@ echo " >>>> Installation de Mosquitto MQTT broker <<<<"
 # Prerequisites
 apt update
 apt upgrade -y
-apt install -y  whiptail
+apt install -y whiptail
 
 
 # Check TERM
@@ -37,7 +37,7 @@ fi
 # Setup login and password
 if [ -z ${MQTT_USER} ] ; then
     MQTT_USER=$(whiptail --title "Input" --inputbox "MQTT User" 10 60 user 3>&1 1>&2 2>&3)
-    exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_USER=User ; fi
+    exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_USER=user ; fi
 fi
 
 if [ -z ${MQTT_PASS} ] ; then
@@ -52,8 +52,6 @@ fi
 
 
 # Prerequisites
-apt update
-apt upgrade -y
 apt install -y software-properties-common gnupg wget ca-certificates hostname whiptail apt-transport-https
 
 
@@ -82,7 +80,7 @@ apt install -y mosquitto
 # Generate a password for Mosquitto
 passfile="/etc/mosquitto/passwordfile"
 touch ${passfile}
-mosquitto_passwd -b ${passfile} user ${MQTT_USER}
+mosquitto_passwd -b ${passfile} ${MQTT_USER} ${MQTT_USER}
 
 touch /root/mosquitto_passwd
 chmod 600 /root/mosquitto_passwd

@@ -24,25 +24,26 @@ ln -s /usr/bin/nodejs /usr/bin/node
 
 
 # Install Wetty
-su - wettyuser
+#su - wettyuser
+cd /home/wettyuser/
 git clone https://github.com/krishnasrinivas/wetty
+chown -R wettyuser:wettyuser wetty/
 cd wetty/
-npm install
+sudo -u wettyuser 'npm install'
 
 
 # SSL
-mkdir /home/ssl
-cd /home/ssl
-openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 30000 -nodes
+mkdir -p /home/ssl/
+cd /home/ssl/
+openssl genrsa -out motioneye.key 2048
+openssl req -new -key motioneye.key -out motioneye.csr -subj "/C=FR/ST=Paris/L=Paris/O=Global Security/OU=IT Department/CN=example.com"
+openssl x509 -req -days 3650 -in motioneye.csr -signkey motioneye.key -out motioneye.crt
 
-sudo -u wettyuser node /home/wettyuser/wetty/app.js --sslkey /home/ssl/key.pem --sslcert /home/ssl/cert.pem -p 3000 &
-
-
-
+sudo -u wettyuser 'node /home/wettyuser/wetty/app.js --sslkey /home/ssl/key.pem --sslcert /home/ssl/cert.pem -p 3000' &
 
 
 # Show IP
 ip=$(hostname -I)
-echo " >>>>  Please open http://${ip} (login=admin, pass=admin) <<<<"
+echo " >>>>  Please open http://${ip} <<<<"
 
 
