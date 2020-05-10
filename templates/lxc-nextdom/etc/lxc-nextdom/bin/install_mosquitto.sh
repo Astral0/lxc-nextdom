@@ -104,7 +104,7 @@ EOF
 # Start server
 systemctl daemon-reload
 systemctl start mosquitto
-systemctl status mosquitto
+#systemctl status mosquitto
 
 # Enable the systemd service
 systemctl enable mosquitto.service
