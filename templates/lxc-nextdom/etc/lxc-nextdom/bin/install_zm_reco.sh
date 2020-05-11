@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -e
+# Zoneminder + Reco script for Debian
 
-set -x
+set -e
 
 #arg1=$1
 #arg2=$2

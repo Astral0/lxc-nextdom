@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Mosquitto script for Debian
+
+set -e
+
 #arg1=$1
 #arg2=$2
 

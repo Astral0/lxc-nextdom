@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# Nextdom script for Debian 9 or 10
+
+set -e
+
 arg=$1
-echo $arg
+#echo $arg
 
 DEBIAN_FRONTEND=noninteractive
 export DEBIAN_FRONTEND
