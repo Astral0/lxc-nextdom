@@ -4,6 +4,12 @@
 
 set -e
 
+source /etc/os-release
+if [ ! $VERSION_ID = "9" ];then
+    echo "Error! This script is for Debian 9 ! Exiting..."
+	exit 1
+fi
+
 DEBIAN_FRONTEND=noninteractive
 export DEBIAN_FRONTEND
 
