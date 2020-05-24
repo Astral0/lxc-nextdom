@@ -90,7 +90,8 @@ touch /root/mosquitto_passwd
 chmod 600 /root/mosquitto_passwd
 echo "${MQTT_USER} ${MQTT_PASS}" >>/root/mosquitto_passwd
 
-
+sed -i 's/^allow_anonymous.*/#allow_anonymous false/g' /etc/mosquitto/mosquitto.conf
+sed -i 's/^password_file.*/#apassword_file \/etc\/mosquitto\/passwordfile/g' /etc/mosquitto/mosquitto.conf
 cat <<EOF >> /etc/mosquitto/mosquitto.conf
 allow_anonymous false
 password_file ${passfile}
