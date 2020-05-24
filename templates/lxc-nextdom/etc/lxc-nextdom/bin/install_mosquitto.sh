@@ -72,19 +72,22 @@ else
 fi
 
 source /etc/os-release
-test $VERSION_ID = "7" && wget -O ${APT_DIR}/mosquitto-wheezy.list http://repo.mosquitto.org/debian/mosquitto-wheezy.list
-test $VERSION_ID = "8" && wget -O ${APT_DIR}/mosquitto-jessie.list http://repo.mosquitto.org/debian/mosquitto-jessie.list
-test $VERSION_ID = "9" && wget -O ${APT_DIR}/mosquitto-stretch.list http://repo.mosquitto.org/debian/mosquitto-stretch.list
-test $VERSION_ID = "10" && wget -O ${APT_DIR}/mosquitto-buster.list http://repo.mosquitto.org/debian/mosquitto-buster.list
+# Debian only (Ubuntu has mosquitto package)
+if [ "${ID}" = "debian" ]; then
+    test $VERSION_ID = "7" && wget -O ${APT_DIR}/mosquitto-wheezy.list http://repo.mosquitto.org/debian/mosquitto-wheezy.list
+    test $VERSION_ID = "8" && wget -O ${APT_DIR}/mosquitto-jessie.list http://repo.mosquitto.org/debian/mosquitto-jessie.list
+    test $VERSION_ID = "9" && wget -O ${APT_DIR}/mosquitto-stretch.list http://repo.mosquitto.org/debian/mosquitto-stretch.list
+    test $VERSION_ID = "10" && wget -O ${APT_DIR}/mosquitto-buster.list http://repo.mosquitto.org/debian/mosquitto-buster.list
+    apt update
+fi
 
-apt update
 apt install -y mosquitto
 
 
 # Generate a password for Mosquitto
 passfile="/etc/mosquitto/passwordfile"
 touch ${passfile}
-mosquitto_passwd -b ${passfile} ${MQTT_USER} ${MQTT_USER}
+mosquitto_passwd -b ${passfile} ${MQTT_USER} ${MQTT_PASS}
 
 touch /root/mosquitto_passwd
 chmod 600 /root/mosquitto_passwd
