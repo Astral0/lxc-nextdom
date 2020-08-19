@@ -146,6 +146,10 @@ if [ "${PRODUCT_NAME}" == "veolia-idf" ] && [ ! "${DEB_VERSION}" == "buster" ] ;
     DEB_VERSION="buster"
 fi
 
+if [ "${PRODUCT_NAME}" == "motioneye" ] && [ ! "${DEB_VERSION}" == "buster" ] ; then
+    echo "<I> For MotionEye, switch to Debian Buster container"
+    DEB_VERSION="buster"
+fi
 
 if [ "${PRODUCT_NAME}" == "zm_reco" ] ; then
     if [ ! "${DEB_VERSION}" == "stretch" ] ; then
@@ -173,7 +177,7 @@ fi
 
 if [ "${DEB_VERSION}" == "stretch" ] || [ "${DEB_VERSION}" == "buster" ] ; then
     DISTRO_TYPE="debian"
-elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] || [ "${DEB_VERSION}" == "zesty" ] ; then
+elif [ "${DEB_VERSION}" == "xenial" ] || [ "${DEB_VERSION}" == "bionic" ] || [ "${DEB_VERSION}" == "zesty" ] || [ "${DEB_VERSION}" == "focal" ] ; then
     DISTRO_TYPE="ubuntu"
 else
     echo "<F> Error : don't know Deb version : ${DEB_VERSION} !"

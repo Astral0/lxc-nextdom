@@ -4,20 +4,56 @@
 
 set -e
 
-#arg1=$1
-#arg2=$2
+arg1=$1
+arg2=$2
+
+
+#if [ "x${arg1}" == "xwith-mqtt" ]; then
+#  USE_MQTT=1
+#else
+#  USE_MQTT=0
+#fi
+
 
 DEBIAN_FRONTEND=noninteractive
 export DEBIAN_FRONTEND
 
 echo " >>>> Installation de MotionEye <<<<"
 
-# Install Grafana
-apt update
-apt upgrade -y
 
 # Install prerequisites
-apt install -y motion ffmpeg v4l-utils
+apt update
+apt upgrade -y
+apt install -y ffmpeg v4l-utils curl wget
+
+# Prerequisites for .deb file
+apt install -y libmicrohttpd12 libavcodec58 libavdevice58 libavformat58 libavutil56 libc6 libjpeg62-turbo libmariadb3 libpq5 libsqlite3-0 libssl1.1 libswscale5 zlib1g adduser
+
+
+# Test if Debian is Buster
+distro=buster
+. /etc/os-release
+if [ ! "x${VERSION_CODENAME}" == "x${distro}" ]; then
+    echo "Tested only on Buster. Exiting..."
+    exit 1
+fi
+
+# Download latest Motion binary
+dist=$(uname -m)
+if [ ! "${dist}" == "x86_64" ] && [ ! "${dist}" == "armv7l" ] && [ ! "${dist}" == "arm64" ] && [ ! "${dist}" == "armv6l" ] ; then
+    echo "Error! Wrong plateform. Exiting..."
+    exit 1
+fi
+if [ "${dist}" == "x86_64" ]; then dist="amd64" ; fi
+
+url=$(curl -s https://api.github.com/repos/Motion-Project/motion/releases/latest |grep ${distro} | grep browser_download_url | grep ${dist} | awk -F": " '{print $2}')
+
+pkgname=$(curl -s https://api.github.com/repos/Motion-Project/motion/releases/latest |grep ${distro} | grep \"name\"\: | grep ${dist} | awk -F": " '{print $2}' | awk -F"\"" '{print $2}')
+
+wget ${url:1:-1}
+
+#apt install -y motion
+
 apt install -y python-pip python-dev python-setuptools curl libssl-dev libcurl4-openssl-dev libjpeg-dev libz-dev
 
 # Install MotionEye
@@ -30,14 +66,22 @@ cp /usr/local/share/motioneye/extra/motioneye.conf.sample /etc/motioneye/motione
 # Prepare the media directory
 mkdir -p /var/lib/motioneye
 
-# Start server
-cp /usr/local/share/motioneye/extra/motioneye.systemd-unit-local /etc/systemd/system/motioneye.service
-systemctl daemon-reload
-systemctl enable motioneye
-systemctl start motioneye
 
-# Enable the systemd service
-systemctl enable motioneye.service
+if [[ -e "/run/systemd/system" ]]; then
+  # Enable the systemd service
+  cp /usr/local/share/motioneye/extra/motioneye.systemd-unit-local /etc/systemd/system/motioneye.service
+  systemctl daemon-reload
+  systemctl enable motioneye
+  systemctl start motioneye
+  systemctl enable motioneye.service
+else
+  # Enable the sysvinit service
+  cp /usr/local/share/motioneye/extra/motioneye.init-debian /etc/init.d/motioneye
+  chmod +x /etc/init.d/motioneye
+  update-rc.d -f motioneye defaults
+  /etc/init.d/motioneye start
+fi
+
 
 # Generate a self-signed Certificat for Nginx
 apt install -y openssl
@@ -96,6 +140,13 @@ nginx -t
 service nginx restart
 
 
+# Install MQTT
+apt install -y mosquitto-clients
+
+echo "
+To use MQTT motion trigger, you can use these command in MotionEye :
+mosquitto_pub -h my.mqtt.addr -p 1883 -u User -P Password -t cctv/front_door/motion -m "ON" --insecure
+"
 
 # Show IP
 ip=$(hostname -I)
