@@ -16,6 +16,17 @@ MQTT_USER=
 MQTT_PASS=
 
 
+# Test RAM
+# i=$(cat /proc/meminfo |grep MemTotal | awk -F" " '{print $2}')
+# ii=$(($i + 0))
+# if [ $i -lt 4000000 ]; then echo
+    # echo "Less than 4 Go of RAM, switching compilation to 1 core."
+    # export CFLAGS="-j1"
+    # export CPPFLAGS="-j1"
+    # export CXXFLAGS="-j1"
+# fi
+
+
 # Prerequisites
 apt update
 apt install -y whiptail nmap
@@ -319,7 +330,7 @@ wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names 
 wget  https://pjreddie.com/media/files/yolov3.weights -O /var/lib/zmeventnotification/models/yolov3/yolov3.weights
 
 # Si vous souhaitez utiliser TinyYoloV3 (plus rapide, moins précis)
-mkdir -p /var/lib/zmeventnotification/models/tinyyolosudo
+mkdir -p /var/lib/zmeventnotification/models/tinyyolo/
 wget  https://pjreddie.com/media/files/yolov3-tiny.weights -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.weights
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.cfg
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.txt
@@ -655,7 +666,7 @@ wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names 
 wget  https://pjreddie.com/media/files/yolov3.weights -O /var/lib/zmeventnotification/models/yolov3/yolov3.weights
 
 # Si vous souhaitez utiliser TinyYoloV3 (plus rapide, moins précis)
-mkdir -p /var/lib/zmeventnotification/models/tinyyolosudo
+mkdir -p /var/lib/zmeventnotification/models/tinyyolo
 wget  https://pjreddie.com/media/files/yolov3-tiny.weights -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.weights
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.cfg
 wget  https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names -O /var/lib/zmeventnotification/models/tinyyolo/yolov3-tiny.txt
@@ -675,8 +686,8 @@ sed -i "/^\[general\]$/,/^\[/ s#password=.*#password=$password#" /etc/zm/objectc
 # Restore Cam1
 #set +e
 #cat << \EOF > /tmp/zm_cams.sql
-INSERT INTO `Monitors` VALUES (1,'cam1',0,0,'Ffmpeg','Modect',1,NULL,'','',0,0,NULL,1,NULL,'rtpRtsp',NULL,'','','rtsp://viewer:viewer@10.0.0.66:554/Streaming/Channels/101',NULL,NULL,NULL,1920,1080,3,0,'0',0,NULL,NULL,3,0,NULL,NULL,'# Lines beginning with # are a comment \r\n# For changing quality, use the crf option\r\n# 1 is best, 51 is worst quality\r\n#crf=23',0,0,-1,-1,-1,-1,'Event-','%N - %d/%m/%y %H:%M:%S',0,0,1,100,0,0,0,0,1,600,10,0,0,NULL,0,NULL,NULL,100,6,6,0,NULL,NULL,NULL,NULL,0,NULL,-1,NULL,100,100,'auto',0,'#0000BE','red',0,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL);
-EOF
+#INSERT INTO `Monitors` VALUES (1,'cam1',0,0,'Ffmpeg','Modect',1,NULL,'','',0,0,NULL,1,NULL,'rtpRtsp',NULL,'','','rtsp://viewer:viewer@10.0.0.66:554/Streaming/Channels/101',NULL,NULL,NULL,1920,1080,3,0,'0',0,NULL,NULL,3,0,NULL,NULL,'# Lines beginning with # are a comment \r\n# For changing quality, use the crf option\r\n# 1 is best, 51 is worst quality\r\n#crf=23',0,0,-1,-1,-1,-1,'Event-','%N - %d/%m/%y %H:%M:%S',0,0,1,100,0,0,0,0,1,600,10,0,0,NULL,0,NULL,NULL,100,6,6,0,NULL,NULL,NULL,NULL,0,NULL,-1,NULL,100,100,'auto',0,'#0000BE','red',0,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL);
+#EOF
 #mysql -u root --database='zm' < /tmp/zm_cams.sql
 #rm -f /tmp/zm_cams.sql
 #set -e
