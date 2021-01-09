@@ -52,6 +52,8 @@ pkgname=$(curl -s https://api.github.com/repos/Motion-Project/motion/releases/la
 
 wget ${url:1:-1}
 
+dpkg -i ${pkgname}
+
 #apt install -y motion
 
 apt install -y python-pip python-dev python-setuptools curl libssl-dev libcurl4-openssl-dev libjpeg-dev libz-dev
@@ -150,6 +152,6 @@ mosquitto_pub -h my.mqtt.addr -p 1883 -u User -P Password -t cctv/front_door/mot
 
 # Show IP
 ip=$(hostname -I)
-echo " >>>>  Please open https://${ip} (login=admin, pass=admin) <<<<"
+echo " >>>>  Please open https://${ip} (login=admin, pass empty) <<<<"
 
 
