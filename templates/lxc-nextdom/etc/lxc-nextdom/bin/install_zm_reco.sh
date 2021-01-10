@@ -17,14 +17,14 @@ MQTT_PASS=
 
 
 # Test RAM
-# i=$(cat /proc/meminfo |grep MemTotal | awk -F" " '{print $2}')
-# ii=$(($i + 0))
-# if [ $i -lt 4000000 ]; then echo
-    # echo "Less than 4 Go of RAM, switching compilation to 1 core."
-    # export CFLAGS="-j1"
-    # export CPPFLAGS="-j1"
-    # export CXXFLAGS="-j1"
-# fi
+i=$(cat /proc/meminfo |grep MemTotal | awk -F" " '{print $2}')
+ii=$(($i + 0))
+if [ $i -lt 4000000 ]; then echo
+    echo "Less than 4 Go of RAM, switching compilation to 1 core."
+    export CFLAGS="-j1"
+    export CPPFLAGS="-j1"
+    export CXXFLAGS="-j1"
+fi
 
 
 # Prerequisites
@@ -106,6 +106,7 @@ apt upgrade -y
 # Install prerequisites
 apt install -y software-properties-common gnupg wget ca-certificates apt-transport-https sudo git
 apt install -y apache2
+apt install -y libx11-dev
 
 
 # Install Zoneminder
