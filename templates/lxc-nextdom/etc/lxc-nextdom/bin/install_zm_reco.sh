@@ -17,14 +17,14 @@ MQTT_PASS=
 
 
 # Test RAM
-i=$(cat /proc/meminfo |grep MemTotal | awk -F" " '{print $2}')
-ii=$(($i + 0))
-if [ $i -lt 4000000 ]; then echo
-    echo "Less than 4 Go of RAM, switching compilation to 1 core."
-    export CFLAGS="-j1"
-    export CPPFLAGS="-j1"
-    export CXXFLAGS="-j1"
-fi
+#i=$(cat /proc/meminfo |grep MemTotal | awk -F" " '{print $2}')
+#ii=$(($i + 0))
+#if [ $i -lt 4000000 ]; then echo
+#    echo "Less than 4 Go of RAM, switching compilation to 1 core."
+#    export CFLAGS="-j1"
+#    export CPPFLAGS="-j1"
+#    export CXXFLAGS="-j1"
+#fi
 
 
 # Prerequisites
@@ -314,11 +314,7 @@ pip3 install requests
 pip3 install Shapely
 pip3 install imutils
 
-#export CFLAGS="-j 1"
-#export CPPFLAGS="-j 1"
-#export CXXFLAGS="-j 1"
-
-pip3 install face_recognition
+taskset -c 0 pip3 install face_recognition
 
 mkdir -p /var/lib/zmeventnotification/images
 mkdir -p /var/lib/zmeventnotification/models
