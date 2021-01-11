@@ -314,7 +314,10 @@ pip3 install requests
 pip3 install Shapely
 pip3 install imutils
 
-taskset -c 0 pip3 install face_recognition
+# Limit number of core for compilation
+export MAKEFLAGS="-j1"
+
+pip3 install face_recognition
 
 mkdir -p /var/lib/zmeventnotification/images
 mkdir -p /var/lib/zmeventnotification/models
