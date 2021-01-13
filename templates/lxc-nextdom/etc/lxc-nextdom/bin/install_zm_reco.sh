@@ -111,7 +111,6 @@ if [ "x${USE_MQTT}" == "x1" ]; then
 
 fi
 
-exit 0
 
 # Install Zoneminder
 apt update
