@@ -46,58 +46,72 @@ fi
 #echo $TERM
 #export TERM=vt100
 
-# Try to detect MQTT server IP or ask this IP
-set +e
-listip=
-if [ -z ${MQTT_IP} ] ; then
-    #ll=$(hostname -I | cut -d' ' -f1 | awk -F'.' '{ print $1"."$2"."$3".0/24" }' 2>/dev/null)
-    ll=$(hostname -I | cut -d' ' -f1 | awk -F'.' '{ print $1"."$2"."$3"." }' 2>/dev/null)
-	lll="${ll}0/24"
-    listip=$(nmap --open -p 1883,1884 ${lll} -oG - | grep "/open" | awk '{ print $2 }' | tr '\n' ' ' 2>/dev/null)
-	if [ -z ${listip} ] ; then
-	    first=${ll}
-		MQTT_IP=$(whiptail --title "Input" --inputbox "MQTT Server IP" 10 60 $first 3>&1 1>&2 2>&3)
-		exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_IP= ; fi
-	else
-        first=$(echo $listip | cut -d' ' -f1)
-		MQTT_IP=$(whiptail --title "Input" --inputbox "MQTT Server IP (detected = ${listip})" 10 60 $first 3>&1 1>&2 2>&3)
-		exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_IP= ; fi
-	fi
+# MQTT
+if (whiptail --title "Use MQTT connector ?" --yesno "Use a MQTT Broker ?" 10 60 3>&1 1>&2 2>&3) then
+    USE_MQTT=1
+else
+    USE_MQTT=0
 fi
-set -e
+#exitstatus=$? && if [ ! $exitstatus = 0 ]; then USE_MQTT=0 ; fi
 
-# # Ask MQTT port
-# if [ -z ${MQTT_PORT} ] ; then
-    # MQTT_PORT=$(whiptail --title "Input" --inputbox "MQTT Port" 10 60 1883 3>&1 1>&2 2>&3)
-    # exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_PORT= ; fi
-# fi
+if [ "x${USE_MQTT}" == "x1" ]; then
 
-# Ask MQTT login and password
-if [ -z ${MQTT_USER} ] ; then
-    MQTT_USER=$(whiptail --title "Input" --inputbox "MQTT User" 10 60 user 3>&1 1>&2 2>&3)
-    exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_USER= ; fi
-fi
-
-if [ -z ${MQTT_PASS} ] ; then
-    MQTT_PASS=$(whiptail --title "Input" --passwordbox "MQTT Password" 10 60 3>&1 1>&2 2>&3)
-    exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_PASS= ; fi
-
-    if [ -z $MQTT_PASS ]; then
-        MQTT_PASS=${pass}
+    # Try to detect MQTT server IP or ask this IP
+    set +e
+    listip=
+    if [ -z ${MQTT_IP} ] ; then
+        #ll=$(hostname -I | cut -d' ' -f1 | awk -F'.' '{ print $1"."$2"."$3".0/24" }' 2>/dev/null)
+        ll=$(hostname -I | cut -d' ' -f1 | awk -F'.' '{ print $1"."$2"."$3"." }' 2>/dev/null)
+        lll="${ll}0/24"
+        listip=$(nmap --open -p 1883,1884 ${lll} -oG - | grep "/open" | awk '{ print $2 }' | tr '\n' ' ' 2>/dev/null)
+            if [ -z ${listip} ] ; then
+                first=${ll}
+                MQTT_IP=$(whiptail --title "Input" --inputbox "MQTT Server IP" 10 60 $first 3>&1 1>&2 2>&3)
+                exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_IP= ; fi
+            else
+                first=$(echo $listip | cut -d' ' -f1)
+                MQTT_IP=$(whiptail --title "Input" --inputbox "MQTT Server IP (detected = ${listip})" 10 60 $first 3>&1 1>&2 2>&3)
+                exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_IP= ; fi
+            fi
     fi
+    set -e
+
+
+    # # Ask MQTT port
+    # if [ -z ${MQTT_PORT} ] ; then
+        # MQTT_PORT=$(whiptail --title "Input" --inputbox "MQTT Port" 10 60 1883 3>&1 1>&2 2>&3)
+        # exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_PORT= ; fi
+    # fi
+
+    # Ask MQTT login and password
+    if [ -z ${MQTT_USER} ] ; then
+        MQTT_USER=$(whiptail --title "Input" --inputbox "MQTT User" 10 60 user 3>&1 1>&2 2>&3)
+        exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_USER= ; fi
+    fi
+
+    if [ -z ${MQTT_PASS} ] ; then
+        MQTT_PASS=$(whiptail --title "Input" --passwordbox "MQTT Password" 10 60 3>&1 1>&2 2>&3)
+        exitstatus=$? && if [ ! $exitstatus = 0 ]; then MQTT_PASS= ; fi
+
+        if [ -z $MQTT_PASS ]; then
+            MQTT_PASS=${pass}
+        fi
+    fi
+
+    # if [ -z ${MQTT_IP} ] || [ -z ${MQTT_PORT} ] || [ -z ${MQTT_USER} ] || [ -z ${MQTT_PASS} ] ; then
+        # echo "<F> Error ! Missing parameters MQTT_IP, MQTT_PORT, MQTT_USER  or MQTT_PASS !"
+        # exit 1
+    # fi
+
+
+    if [ -z ${MQTT_IP} ] || [ -z ${MQTT_USER} ] || [ -z ${MQTT_PASS} ] ; then
+        echo "<F> Error ! Missing parameters MQTT_IP (-m), MQTT_USER (-u) or MQTT_PASS (-v) !"
+        exit 1
+    fi
+
 fi
 
-# if [ -z ${MQTT_IP} ] || [ -z ${MQTT_PORT} ] || [ -z ${MQTT_USER} ] || [ -z ${MQTT_PASS} ] ; then
-    # echo "<F> Error ! Missing parameters MQTT_IP, MQTT_PORT, MQTT_USER  or MQTT_PASS !"
-    # exit 1
-# fi
-
-
-if [ -z ${MQTT_IP} ] || [ -z ${MQTT_USER} ] || [ -z ${MQTT_PASS} ] ; then
-    echo "<F> Error ! Missing parameters MQTT_IP (-m), MQTT_USER (-u) or MQTT_PASS (-v) !"
-	exit 1
-fi
-
+exit 0
 
 # Install Zoneminder
 apt update
@@ -179,7 +193,7 @@ cat << \EOF > /etc/init.d/zmeventnotification
 # Required-Stop: $local_fs $syslog $remote_fs
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: ZM Daemon 
+# Short-Description: ZM Daemon
 # Description: zmeventnotification
 ### END INIT INFO
 #/*
@@ -243,11 +257,11 @@ EOF
 # -------------------------------------
 cd /usr/bin/
 if [ ! -d "/usr/bin/zmeventnotification/" ] ; then
-    git clone  https://github.com/pliablepixels/zmeventnotification.git 
+    git clone  https://github.com/pliablepixels/zmeventnotification.git
     cd /usr/bin/zmeventnotification/
 else
     cd /usr/bin/zmeventnotification/
-    git pull  https://github.com/pliablepixels/zmeventnotification.git 
+    git pull  https://github.com/pliablepixels/zmeventnotification.git
 fi
 
 
@@ -255,10 +269,12 @@ fi
 sed -i 's/^.*port =.*/port = 9000/g' zmeventnotification.ini
 
 # Enable MQTT
-sed -i '/^\[mqtt\]$/,/^\[/ s/^enable =.*/enable = yes/' zmeventnotification.ini
-sed -i "/^\[mqtt\]$/,/^\[/ s/^.*server =.*/server = $MQTT_IP/" zmeventnotification.ini
-sed -i "/^\[mqtt\]$/,/^\[/ s/^.*username =.*/username = $MQTT_USER/" zmeventnotification.ini
-sed -i "/^\[mqtt\]$/,/^\[/ s/^.*password =.*/password = $MQTT_PASS/" zmeventnotification.ini
+if [ "x${USE_MQTT}" == "x1" ]; then
+    sed -i '/^\[mqtt\]$/,/^\[/ s/^enable =.*/enable = yes/' zmeventnotification.ini
+    sed -i "/^\[mqtt\]$/,/^\[/ s/^.*server =.*/server = $MQTT_IP/" zmeventnotification.ini
+    sed -i "/^\[mqtt\]$/,/^\[/ s/^.*username =.*/username = $MQTT_USER/" zmeventnotification.ini
+    sed -i "/^\[mqtt\]$/,/^\[/ s/^.*password =.*/password = $MQTT_PASS/" zmeventnotification.ini
+fi
 
 # Enable SSL
 sed -i "/^\[ssl\]$/,/^\[/ s#^.*enable =.*#enable = yes#" zmeventnotification.ini
@@ -294,8 +310,11 @@ perl -MCPAN -e "install Crypt::MySQL"
 perl -MCPAN -e "install Config::IniFiles"sudo perl -MCPAN -e "install Crypt::Eksblowfish::Bcrypt"
 perl -MCPAN -e "install Net::WebSocket::Server"
 perl -MCPAN -e "install LWP::Protocol::https"
-perl -MCPAN -e "install Net::MQTT::Simple"
 perl -MCPAN -e "install Getopt::Long"
+if [ "x${USE_MQTT}" == "x1" ]; then
+    perl -MCPAN -e "install Net::MQTT::Simple"
+fi
+
 
 chmod a+x /usr/bin/zmeventnotification/zmeventnotification.pl
 
