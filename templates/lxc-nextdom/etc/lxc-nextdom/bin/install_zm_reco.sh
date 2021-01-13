@@ -315,7 +315,10 @@ pip3 install Shapely
 pip3 install imutils
 
 # Limit number of core for compilation
-export MAKEFLAGS="-j1"
+#export MAKEFLAGS="-j1"
+#export CMAKE_MAKE_PROGRAM="make -j1"
+export TRAVIS=true  # hack for compilation of Dlib : TRAVIS=true ==> use only 2 cores
+pip3 install dlib
 
 pip3 install face_recognition
 
