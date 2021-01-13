@@ -243,12 +243,12 @@ EOF
 # Installation of ZM Event Notification
 # -------------------------------------
 cd /usr/bin/
-if [ ! -d "/usr/bin/zmeventnotification/" ] ; then
-    git clone  https://github.com/pliablepixels/zmeventnotification.git
+if [ ! -d /usr/bin/zmeventnotification ] ; then
+    git clone https://github.com/pliablepixels/zmeventnotification.git
     cd /usr/bin/zmeventnotification/
 else
     cd /usr/bin/zmeventnotification/
-    git pull  https://github.com/pliablepixels/zmeventnotification.git
+    git pull https://github.com/pliablepixels/zmeventnotification.git
 fi
 
 
