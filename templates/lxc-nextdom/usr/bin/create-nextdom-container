@@ -11,7 +11,7 @@ LXC_DIR=/var/lib/lxc
 usage() { echo "Usage: $0
   [-h <help>]
   [-n <container name (default: lxc-nextdom)>]
-  
+
   [-p <product type :
             'empty'   : Create an empty container
 
@@ -364,7 +364,7 @@ step_prepare_config() {
             if [ -z "$(grep "^lxc.net.0.ipv4.address " ${config})" ] ; then
                 echo "lxc.net.0.ipv4.address = ${LXC_CIDR}" >>${config}
             else
-                sed -i "s#^lxc.net.0.ipv4.address .*#lxc.net.0.ipv4= ${LXC_CIDR}#g" ${config}
+                sed -i "s#^lxc.net.0.ipv4.address .*#lxc.net.0.ipv4.address = ${LXC_CIDR}#g" ${config}
             fi
             if [ -z "$(grep "^lxc.net.0.ipv4.gateway " ${config})" ] ; then
                 echo "lxc.net.0.ipv4.gateway = ${GATEWAY}" >>${config}
