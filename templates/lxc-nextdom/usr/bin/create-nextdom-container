@@ -34,10 +34,10 @@ usage() { echo "Usage: $0
             'wetty' : WeTTY web terminal
             'zm_reco' : Zoneminder and Facial reco
   ]
-  [-d <Linux distribution (a Debian or Ubuntu distro name : stretch, buster, xenial, ... - Default=stretch)>]
+  [-d <Linux distribution (a Debian or Ubuntu distro name : stretch, buster, xenial, ... - Default=buster)>]
   [-i <container IP (CIDR format, ex. 192.168.1.100/24 - Empty=DHCP )>]
   [-r yes <replace container>]
-  
+
   # Nextdom parameter:
   [-b <backupfile to restore inside container (full path to restore or leave empty to detect last backup on current host and copy inside container)>]
 
@@ -90,7 +90,7 @@ shift $((OPTIND-1))
 
 LXC_NAME=${LXC_NAME:-"test"}
 PRODUCT_NAME=${PRODUCT_NAME:-"empty"}
-DEB_VERSION=${DEB_VERSION:-"stretch"}
+DEB_VERSION=${DEB_VERSION:-"buster"}
 
 #echo $LXC_NAME
 #echo $PRODUCT_NAME
